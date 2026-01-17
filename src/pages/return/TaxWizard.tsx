@@ -293,7 +293,7 @@ function Header({ taxYear, firstName }: { taxYear: number; firstName: string }) 
           </div>
 
           {/* Help */}
-          <Link to="/help" style={{
+          <Link to="/support" style={{
             fontSize: '14px',
             color: '#1F2937',
             textDecoration: 'none'
