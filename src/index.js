@@ -1,10 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import TaxSimpleApp from './taxsimple-app';
+import App from './App';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <TaxSimpleApp />
+    <App />
   </React.StrictMode>
 );
