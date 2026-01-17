@@ -22,6 +22,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const STORAGE_KEY = 'taxsimple_auth';
 const USERS_KEY = 'taxsimple_users';
+const RATE_LIMIT_KEY = 'taxsimple_rate_limit';
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes in milliseconds
 
 // Derive encryption key from a base key (in production, use user's password)
 const getEncryptionKey = () => {
@@ -39,6 +42,31 @@ const decrypt = (ciphertext: string): string => {
 
 const hashPassword = (password: string): string => {
   return CryptoJS.SHA256(password).toString();
+};
+
+interface RateLimitData {
+  attempts: number;
+  lockoutUntil: number | null;
+}
+
+const getRateLimitData = (email: string): RateLimitData => {
+  try {
+    const stored = localStorage.getItem(`${RATE_LIMIT_KEY}_${email.toLowerCase()}`);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch {
+    // Ignore errors
+  }
+  return { attempts: 0, lockoutUntil: null };
+};
+
+const setRateLimitData = (email: string, data: RateLimitData) => {
+  localStorage.setItem(`${RATE_LIMIT_KEY}_${email.toLowerCase()}`, JSON.stringify(data));
+};
+
+const clearRateLimitData = (email: string) => {
+  localStorage.removeItem(`${RATE_LIMIT_KEY}_${email.toLowerCase()}`);
 };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -94,18 +122,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Simulate network delay
       await new Promise(resolve => setTimeout(resolve, 500));
 
+      // Check rate limiting
+      const rateLimitData = getRateLimitData(email);
+
+      if (rateLimitData.lockoutUntil && Date.now() < rateLimitData.lockoutUntil) {
+        const remainingMinutes = Math.ceil((rateLimitData.lockoutUntil - Date.now()) / 60000);
+        return {
+          success: false,
+          error: `Too many failed attempts. Please try again in ${remainingMinutes} minute${remainingMinutes > 1 ? 's' : ''}.`
+        };
+      }
+
       const users = getUsers();
       const userRecord = users[email.toLowerCase()];
 
       if (!userRecord) {
-        return { success: false, error: 'No account found with this email' };
+        // Increment failed attempts even for non-existent accounts (prevent enumeration)
+        const newAttempts = rateLimitData.attempts + 1;
+        if (newAttempts >= MAX_ATTEMPTS) {
+          setRateLimitData(email, { attempts: newAttempts, lockoutUntil: Date.now() + LOCKOUT_DURATION });
+        } else {
+          setRateLimitData(email, { attempts: newAttempts, lockoutUntil: null });
+        }
+        return { success: false, error: 'Invalid email or password' };
       }
 
       const passwordHash = hashPassword(password);
       if (userRecord.passwordHash !== passwordHash) {
-        return { success: false, error: 'Incorrect password' };
+        // Increment failed attempts
+        const newAttempts = rateLimitData.attempts + 1;
+        if (newAttempts >= MAX_ATTEMPTS) {
+          setRateLimitData(email, { attempts: newAttempts, lockoutUntil: Date.now() + LOCKOUT_DURATION });
+          return {
+            success: false,
+            error: 'Too many failed attempts. Your account has been locked for 15 minutes.'
+          };
+        } else {
+          setRateLimitData(email, { attempts: newAttempts, lockoutUntil: null });
+          const remaining = MAX_ATTEMPTS - newAttempts;
+          return {
+            success: false,
+            error: `Invalid email or password. ${remaining} attempt${remaining > 1 ? 's' : ''} remaining.`
+          };
+        }
       }
 
+      // Successful login - clear rate limit data
+      clearRateLimitData(email);
       setUser(userRecord.user);
       return { success: true };
     } finally {

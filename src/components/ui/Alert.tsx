@@ -5,9 +5,10 @@ interface AlertProps {
   title?: string;
   children: React.ReactNode;
   onClose?: () => void;
+  style?: React.CSSProperties;
 }
 
-export function Alert({ type, title, children, onClose }: AlertProps) {
+export function Alert({ type, title, children, onClose, style: customStyle }: AlertProps) {
   const styles: Record<string, { bg: string; border: string; text: string; icon: string }> = {
     info: {
       bg: '#EFF6FF',
@@ -75,7 +76,8 @@ export function Alert({ type, title, children, onClose }: AlertProps) {
       padding: '16px',
       display: 'flex',
       gap: '12px',
-      alignItems: 'flex-start'
+      alignItems: 'flex-start',
+      ...customStyle
     }}>
       <div style={{ color: style.icon, flexShrink: 0 }}>
         {icons[type]}

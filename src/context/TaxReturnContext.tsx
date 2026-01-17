@@ -52,6 +52,25 @@ export interface T2125Data {
 
 export type IncomeSlip = T4Slip | T4ASlip | T5Slip | T2125Data;
 
+export interface SpouseProfile {
+  firstName: string;
+  lastName: string;
+  sin: string;
+  dateOfBirth: string;
+  netIncome: number;
+  filingTogether: boolean;
+}
+
+export interface Dependant {
+  id: string;
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string;
+  relationship: 'child' | 'parent' | 'grandparent' | 'other';
+  netIncome: number;
+  hasDisability: boolean;
+}
+
 export interface Profile {
   firstName: string;
   lastName: string;
@@ -64,6 +83,11 @@ export interface Profile {
   province: ProvinceCode;
   postalCode: string;
   maritalStatus: 'single' | 'married' | 'common-law' | 'separated' | 'divorced' | 'widowed';
+  isCanadianCitizen: boolean;
+  isFirstTimeFilingInCanada: boolean;
+  hasAuthorizedCRAAccess: boolean;
+  spouse?: SpouseProfile;
+  dependants: Dependant[];
 }
 
 export interface TaxReturn {
@@ -124,7 +148,11 @@ const initialProfile: Profile = {
   city: '',
   province: 'ON',
   postalCode: '',
-  maritalStatus: 'single'
+  maritalStatus: 'single',
+  isCanadianCitizen: true,
+  isFirstTimeFilingInCanada: false,
+  hasAuthorizedCRAAccess: false,
+  dependants: []
 };
 
 const createNewReturn = (year: number): TaxReturn => ({

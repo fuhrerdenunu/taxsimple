@@ -105,12 +105,14 @@ export function Input({
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
   error?: string;
+  hint?: string;
   options: { value: string; label: string }[];
 }
 
 export function Select({
   label,
   error,
+  hint,
   options,
   style,
   id,
@@ -165,6 +167,15 @@ export function Select({
           {error}
         </p>
       )}
+      {hint && !error && (
+        <p style={{
+          marginTop: '6px',
+          fontSize: '13px',
+          color: '#6B7280'
+        }}>
+          {hint}
+        </p>
+      )}
     </div>
   );
 }
@@ -179,13 +190,41 @@ export function MoneyInput({
   onChange,
   ...props
 }: MoneyInputProps) {
+  const [displayValue, setDisplayValue] = React.useState(value > 0 ? value.toString() : '');
+  const [isFocused, setIsFocused] = React.useState(false);
+
+  // Sync display value when external value changes (but not while focused)
+  React.useEffect(() => {
+    if (!isFocused) {
+      setDisplayValue(value > 0 ? value.toFixed(2) : '');
+    }
+  }, [value, isFocused]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawValue = e.target.value.replace(/[^0-9.]/g, '');
-    const numValue = parseFloat(rawValue) || 0;
-    onChange(numValue);
+    const rawValue = e.target.value;
+    // Allow digits, one decimal point, and empty string
+    if (rawValue === '' || /^\d*\.?\d*$/.test(rawValue)) {
+      setDisplayValue(rawValue);
+      const numValue = parseFloat(rawValue) || 0;
+      onChange(numValue);
+    }
   };
 
-  const displayValue = value > 0 ? value.toFixed(2) : '';
+  const handleFocus = () => {
+    setIsFocused(true);
+    // Show raw number without trailing zeros when focusing
+    if (value > 0) {
+      setDisplayValue(value.toString());
+    }
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    // Format to 2 decimal places on blur
+    const numValue = parseFloat(displayValue) || 0;
+    setDisplayValue(numValue > 0 ? numValue.toFixed(2) : '');
+    onChange(numValue);
+  };
 
   return (
     <Input
@@ -194,6 +233,8 @@ export function MoneyInput({
       leftIcon={<span style={{ fontSize: '14px' }}>$</span>}
       value={displayValue}
       onChange={handleChange}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
       placeholder="0.00"
       {...props}
     />
