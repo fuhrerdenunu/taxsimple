@@ -307,7 +307,6 @@ function Header({ taxYear, firstName }: { taxYear: number; firstName: string }) 
 }
 
 function LeftSidebar({ taxYear, currentPath }: { taxYear: number; currentPath: string }) {
-  const navigate = useNavigate();
   const [expandedSection, setExpandedSection] = useState('forms');
   const [showAddForms, setShowAddForms] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -329,14 +328,6 @@ function LeftSidebar({ taxYear, currentPath }: { taxYear: number; currentPath: s
   const filteredForms = searchQuery.length > 0
     ? formOptions.filter(f => f.name.toLowerCase().includes(searchQuery.toLowerCase()))
     : formOptions;
-
-  const handleNavClick = (section: NavSection) => {
-    if (section.children) {
-      setExpandedSection(expandedSection === section.id ? '' : section.id);
-    } else {
-      navigate(`/return/${taxYear}/${section.path}`);
-    }
-  };
 
   const isActive = (section: NavSection) => {
     return section.path === currentPath;
@@ -421,11 +412,10 @@ function LeftSidebar({ taxYear, currentPath }: { taxYear: number; currentPath: s
 
             {/* Form options */}
             {filteredForms.map((form) => (
-              <button
+              <Link
                 key={form.id}
-                type="button"
+                to={`/return/${taxYear}/${form.path}`}
                 onClick={() => {
-                  navigate(`/return/${taxYear}/${form.path}`);
                   setShowAddForms(false);
                   setSearchQuery('');
                 }}
@@ -439,13 +429,12 @@ function LeftSidebar({ taxYear, currentPath }: { taxYear: number; currentPath: s
                   cursor: 'pointer',
                   textAlign: 'left',
                   fontSize: '14px',
-                  color: '#1F2937'
+                  color: '#1F2937',
+                  textDecoration: 'none'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F9FAFB'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
               >
                 {form.name}
-              </button>
+              </Link>
             ))}
 
             {filteredForms.length === 0 && (
@@ -461,32 +450,28 @@ function LeftSidebar({ taxYear, currentPath }: { taxYear: number; currentPath: s
       <nav>
         {navSections.map((section) => (
           <div key={section.id}>
-            <button
-              type="button"
-              onClick={() => handleNavClick(section)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                width: '100%',
-                padding: '10px 16px',
-                backgroundColor: 'transparent',
-                border: 'none',
-                borderLeft: isActive(section) && !section.children ? '3px solid #1F2937' : '3px solid transparent',
-                cursor: 'pointer',
-                fontSize: '14px',
-                color: '#4B5563',
-                textAlign: 'left',
-                transition: 'all 0.15s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F3F4F6'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-            >
-              <span style={{
-                fontWeight: isActive(section) ? 500 : 400
-              }}>{section.label}</span>
-
-              {section.children && (
+            {section.children ? (
+              // Expandable section (has children)
+              <button
+                type="button"
+                onClick={() => setExpandedSection(expandedSection === section.id ? '' : section.id)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  width: '100%',
+                  padding: '10px 16px',
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  borderLeft: '3px solid transparent',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  color: '#4B5563',
+                  textAlign: 'left',
+                  transition: 'all 0.15s'
+                }}
+              >
+                <span>{section.label}</span>
                 <svg
                   width="12"
                   height="12"
@@ -499,50 +484,66 @@ function LeftSidebar({ taxYear, currentPath }: { taxYear: number; currentPath: s
                 >
                   <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-              )}
-
-              {section.badge && (
-                <span style={{
-                  backgroundColor: '#F3F4F6',
-                  borderRadius: '10px',
-                  padding: '2px 8px',
-                  fontSize: '12px',
-                  color: '#6B7280',
-                  marginLeft: '8px'
-                }}>
-                  {section.badge}
+              </button>
+            ) : (
+              // Direct link (no children)
+              <Link
+                to={`/return/${taxYear}/${section.path}`}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  width: '100%',
+                  padding: '10px 16px',
+                  backgroundColor: isActive(section) ? '#F3F4F6' : 'transparent',
+                  border: 'none',
+                  borderLeft: isActive(section) ? '3px solid #1F2937' : '3px solid transparent',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  color: '#4B5563',
+                  textAlign: 'left',
+                  textDecoration: 'none',
+                  transition: 'all 0.15s'
+                }}
+              >
+                <span style={{ fontWeight: isActive(section) ? 500 : 400 }}>
+                  {section.label}
                 </span>
-              )}
-            </button>
+                {section.badge && (
+                  <span style={{
+                    backgroundColor: '#E5E7EB',
+                    borderRadius: '10px',
+                    padding: '2px 8px',
+                    fontSize: '12px',
+                    color: '#6B7280'
+                  }}>
+                    {section.badge}
+                  </span>
+                )}
+              </Link>
+            )}
 
             {/* Children */}
             {section.children && expandedSection === section.id && (
               <div style={{ marginLeft: '16px' }}>
                 {section.children.map((child) => (
-                  <button
+                  <Link
                     key={child.id}
-                    type="button"
-                    onClick={() => {
-                      console.log('Navigating to:', `/return/${taxYear}/${child.path}`);
-                      navigate(`/return/${taxYear}/${child.path}`);
-                    }}
+                    to={`/return/${taxYear}/${child.path}`}
                     style={{
                       display: 'block',
                       width: '100%',
                       padding: '8px 16px',
                       backgroundColor: 'transparent',
-                      border: 'none',
                       borderLeft: '3px solid transparent',
-                      cursor: 'pointer',
                       fontSize: '13px',
                       color: '#6B7280',
-                      textAlign: 'left'
+                      textAlign: 'left',
+                      textDecoration: 'none'
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F3F4F6'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                   >
                     {child.label}
-                  </button>
+                  </Link>
                 ))}
               </div>
             )}
