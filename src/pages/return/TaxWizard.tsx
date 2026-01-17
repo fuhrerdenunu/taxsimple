@@ -309,6 +309,26 @@ function Header({ taxYear, firstName }: { taxYear: number; firstName: string }) 
 function LeftSidebar({ taxYear, currentPath }: { taxYear: number; currentPath: string }) {
   const navigate = useNavigate();
   const [expandedSection, setExpandedSection] = useState('forms');
+  const [showAddForms, setShowAddForms] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const formOptions = [
+    { id: 't4', name: 'T4 - Employment Income', path: 'income' },
+    { id: 't4a', name: 'T4A - Pension and Other Income', path: 'income' },
+    { id: 't5', name: 'T5 - Investment Income', path: 'income' },
+    { id: 'rrsp', name: 'RRSP Deduction', path: 'deductions' },
+    { id: 'donations', name: 'Donations & Gifts', path: 'deductions' },
+    { id: 'medical', name: 'Medical Expenses', path: 'deductions' },
+    { id: 't2202', name: 'T2202 - Tuition', path: 'deductions' },
+    { id: 'moving', name: 'Moving Expenses', path: 'deductions' },
+    { id: 't4e', name: 'T4E - Employment Insurance', path: 'income' },
+    { id: 't3', name: 'T3 - Trust Income', path: 'income' },
+    { id: 't5008', name: 'T5008 - Securities Transactions', path: 'income' },
+  ];
+
+  const filteredForms = searchQuery.length > 0
+    ? formOptions.filter(f => f.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    : formOptions;
 
   const handleNavClick = (section: NavSection) => {
     if (section.children) {
@@ -333,41 +353,116 @@ function LeftSidebar({ taxYear, currentPath }: { taxYear: number; currentPath: s
       overflowY: 'auto'
     }}>
       {/* Add tax forms button */}
-      <button
-        onClick={() => navigate(`/return/${taxYear}/income`)}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          width: '100%',
-          padding: '12px 16px',
-          backgroundColor: 'transparent',
-          border: 'none',
-          cursor: 'pointer',
-          fontSize: '15px',
-          fontWeight: 500,
-          color: '#1F2937',
-          textAlign: 'left',
-          marginBottom: '8px'
-        }}
-      >
-        <span style={{
-          width: '24px',
-          height: '24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '18px',
-          fontWeight: 300
-        }}>+</span>
-        Add tax forms
-      </button>
+      <div style={{ position: 'relative' }}>
+        <button
+          type="button"
+          onClick={() => setShowAddForms(!showAddForms)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            width: '100%',
+            padding: '12px 16px',
+            backgroundColor: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: '15px',
+            fontWeight: 500,
+            color: '#1F2937',
+            textAlign: 'left',
+            marginBottom: '8px'
+          }}
+        >
+          <span style={{
+            width: '24px',
+            height: '24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '18px',
+            fontWeight: 300
+          }}>+</span>
+          Add tax forms
+        </button>
+
+        {/* Add forms dropdown */}
+        {showAddForms && (
+          <div style={{
+            position: 'absolute',
+            top: '100%',
+            left: '0',
+            right: '0',
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            border: '1px solid #E5E7EB',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            zIndex: 100,
+            maxHeight: '400px',
+            overflowY: 'auto'
+          }}>
+            {/* Search input */}
+            <div style={{ padding: '12px', borderBottom: '1px solid #E5E7EB' }}>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search forms (e.g. T4, RRSP)"
+                autoFocus
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid #E5E7EB',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  outline: 'none'
+                }}
+              />
+            </div>
+
+            {/* Form options */}
+            {filteredForms.map((form) => (
+              <button
+                key={form.id}
+                type="button"
+                onClick={() => {
+                  navigate(`/return/${taxYear}/${form.path}`);
+                  setShowAddForms(false);
+                  setSearchQuery('');
+                }}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  padding: '12px 16px',
+                  backgroundColor: 'white',
+                  border: 'none',
+                  borderBottom: '1px solid #F3F4F6',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  fontSize: '14px',
+                  color: '#1F2937'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F9FAFB'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+              >
+                {form.name}
+              </button>
+            ))}
+
+            {filteredForms.length === 0 && (
+              <div style={{ padding: '16px', textAlign: 'center', color: '#6B7280', fontSize: '14px' }}>
+                No forms found
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Navigation */}
       <nav>
         {navSections.map((section) => (
           <div key={section.id}>
             <button
+              type="button"
               onClick={() => handleNavClick(section)}
               style={{
                 display: 'flex',
@@ -384,6 +479,8 @@ function LeftSidebar({ taxYear, currentPath }: { taxYear: number; currentPath: s
                 textAlign: 'left',
                 transition: 'all 0.15s'
               }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F3F4F6'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
             >
               <span style={{
                 fontWeight: isActive(section) ? 500 : 400
@@ -424,7 +521,11 @@ function LeftSidebar({ taxYear, currentPath }: { taxYear: number; currentPath: s
                 {section.children.map((child) => (
                   <button
                     key={child.id}
-                    onClick={() => navigate(`/return/${taxYear}/${child.path}`)}
+                    type="button"
+                    onClick={() => {
+                      console.log('Navigating to:', `/return/${taxYear}/${child.path}`);
+                      navigate(`/return/${taxYear}/${child.path}`);
+                    }}
                     style={{
                       display: 'block',
                       width: '100%',
@@ -437,6 +538,8 @@ function LeftSidebar({ taxYear, currentPath }: { taxYear: number; currentPath: s
                       color: '#6B7280',
                       textAlign: 'left'
                     }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F3F4F6'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                   >
                     {child.label}
                   </button>
