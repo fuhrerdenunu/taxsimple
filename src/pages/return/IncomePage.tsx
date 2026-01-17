@@ -12,7 +12,7 @@ import { T5Form } from '../../components/tax/T5Form';
 import { FileUpload } from '../../components/tax/FileUpload';
 import { ParsedSlipData } from '../../utils/pdf-parser';
 
-type ActiveForm = 'none' | 't4' | 't4a' | 't2125' | 't5';
+type ActiveForm = 'none' | 't4' | 't4a' | 't4e' | 't4fhsa' | 't2125' | 't5' | 't3' | 't5008' | 'tuition' | 'rl1';
 
 export function IncomePage() {
   const navigate = useNavigate();
@@ -125,57 +125,185 @@ export function IncomePage() {
     dispatch({ type: 'UPDATE_OTHER_INCOME', payload: { [field]: value } });
   };
 
-  // Handle parsed PDF data
+  // Handle parsed PDF data - supports all major Canadian tax slip types
   const handleParsedData = (data: ParsedSlipData) => {
-    if (data.type === 'T4') {
-      setEditingSlip({
-        id: crypto.randomUUID(),
-        type: 'T4',
-        employerName: data.payerName || '',
-        boxes: {
-          14: data.boxes[14] || 0,
-          16: data.boxes[16] || 0,
-          18: data.boxes[18] || 0,
-          22: data.boxes[22] || 0,
-          44: data.boxes[44] || 0
+    const slipId = crypto.randomUUID();
+
+    switch (data.type) {
+      case 'T4':
+        setEditingSlip({
+          id: slipId,
+          type: 'T4',
+          employerName: data.payerName || '',
+          boxes: {
+            14: data.boxes[14] || 0,  // Employment income
+            16: data.boxes[16] || 0,  // CPP contributions
+            18: data.boxes[18] || 0,  // EI premiums
+            22: data.boxes[22] || 0,  // Income tax deducted
+            24: data.boxes[24] || 0,  // EI insurable earnings
+            26: data.boxes[26] || 0,  // CPP pensionable earnings
+            44: data.boxes[44] || 0,  // Union dues
+            46: data.boxes[46] || 0,  // Charitable donations
+            52: data.boxes[52] || 0,  // Pension adjustment
+          }
+        });
+        setActiveForm('t4');
+        break;
+
+      case 'T4A':
+        setEditingSlip({
+          id: slipId,
+          type: 'T4A',
+          payerName: data.payerName || '',
+          boxes: {
+            16: data.boxes[16] || 0,  // Pension or superannuation
+            18: data.boxes[18] || 0,  // Lump-sum payments
+            20: data.boxes[20] || 0,  // Self-employed commissions
+            22: data.boxes[22] || 0,  // Income tax deducted
+            24: data.boxes[24] || 0,  // Annuities
+            28: data.boxes[28] || 0,  // Other income
+            105: data.boxes[105] || 0, // Scholarships/bursaries
+            135: data.boxes[135] || 0, // Recipient-paid premiums
+          }
+        });
+        setActiveForm('t4a');
+        break;
+
+      case 'T4E':
+        setEditingSlip({
+          id: slipId,
+          type: 'T4E',
+          payerName: 'Employment Insurance',
+          boxes: {
+            14: data.boxes[14] || 0,  // Total EI benefits
+            15: data.boxes[15] || 0,  // Regular benefits
+            17: data.boxes[17] || 0,  // Fishing benefits
+            22: data.boxes[22] || 0,  // Income tax deducted
+          }
+        });
+        setActiveForm('t4e');
+        break;
+
+      case 'T4FHSA':
+        setEditingSlip({
+          id: slipId,
+          type: 'T4FHSA',
+          payerName: data.payerName || '',
+          boxes: {
+            12: data.boxes[12] || 0,  // Contributions
+            22: data.boxes[22] || 0,  // Income tax deducted
+            24: data.boxes[24] || 0,  // Transfers in
+            26: data.boxes[26] || 0,  // Withdrawals
+          }
+        });
+        setActiveForm('t4fhsa');
+        break;
+
+      case 'T5':
+        setEditingSlip({
+          id: slipId,
+          type: 'T5',
+          payerName: data.payerName || '',
+          boxes: {
+            10: data.boxes[10] || 0,  // Actual amount of eligible dividends
+            11: data.boxes[11] || 0,  // Taxable amount of eligible dividends
+            13: data.boxes[13] || 0,  // Interest from Canadian sources
+            18: data.boxes[18] || 0,  // Capital gains dividends
+            24: data.boxes[24] || 0,  // Actual amount of dividends other than eligible
+            25: data.boxes[25] || 0,  // Taxable amount of dividends other than eligible
+            26: data.boxes[26] || 0,  // Dividend tax credit for other than eligible
+          }
+        });
+        setActiveForm('t5');
+        break;
+
+      case 'T3':
+        setEditingSlip({
+          id: slipId,
+          type: 'T3',
+          payerName: data.payerName || '',
+          boxes: {
+            21: data.boxes[21] || 0,  // Capital gains
+            23: data.boxes[23] || 0,  // Eligible dividends
+            26: data.boxes[26] || 0,  // Other income
+            32: data.boxes[32] || 0,  // Income tax deducted
+            49: data.boxes[49] || 0,  // Interest from Canadian sources
+          }
+        });
+        setActiveForm('t3');
+        break;
+
+      case 'T5008':
+        setEditingSlip({
+          id: slipId,
+          type: 'T5008',
+          payerName: data.payerName || '',
+          boxes: {
+            13: data.boxes[13] || 0,  // Type of security
+            15: data.boxes[15] || 0,  // Number of shares
+            20: data.boxes[20] || 0,  // Proceeds
+            21: data.boxes[21] || 0,  // Book value/ACB
+          }
+        });
+        setActiveForm('t5008');
+        break;
+
+      case 'T2202':
+        // Tuition slip - dispatch to credits context
+        dispatch({
+          type: 'UPDATE_CREDITS',
+          payload: {
+            tuition: data.boxes['A'] || data.boxes[1] || 0,
+          }
+        });
+        setActiveForm('tuition');
+        break;
+
+      case 'RL1':
+        // Quebec Relevé 1 - similar to T4
+        setEditingSlip({
+          id: slipId,
+          type: 'RL1',
+          employerName: data.payerName || '',
+          boxes: {
+            'A': data.boxes['A'] || 0,  // Employment income
+            'B': data.boxes['B'] || 0,  // QPP contributions
+            'C': data.boxes['C'] || 0,  // EI premiums
+            'E': data.boxes['E'] || 0,  // Quebec income tax
+            'G': data.boxes['G'] || 0,  // Pensionable salary
+          }
+        });
+        setActiveForm('rl1');
+        break;
+
+      default:
+        // Unknown type - try to determine from box patterns
+        if (data.boxes[14] && (data.boxes[16] || data.boxes[22])) {
+          // Likely T4 pattern
+          handleParsedData({ ...data, type: 'T4' });
+        } else if (data.boxes[16] || data.boxes[28] || data.boxes[105]) {
+          // Likely T4A pattern
+          handleParsedData({ ...data, type: 'T4A' });
+        } else if (data.boxes[13] || data.boxes[24] || data.boxes[10]) {
+          // Likely T5 pattern
+          handleParsedData({ ...data, type: 'T5' });
+        } else if (data.boxes[21] || data.boxes[23]) {
+          // Likely T3 pattern
+          handleParsedData({ ...data, type: 'T3' });
+        } else if (data.boxes['A'] || data.boxes['B']) {
+          // Likely Quebec RL slip
+          handleParsedData({ ...data, type: 'RL1' });
+        } else {
+          // Truly unknown - show as generic T4A
+          setEditingSlip({
+            id: slipId,
+            type: 'unknown',
+            payerName: data.payerName || 'Unknown Slip',
+            boxes: data.boxes
+          });
+          setActiveForm('t4a');
         }
-      });
-      setActiveForm('t4');
-    } else if (data.type === 'T4A') {
-      setEditingSlip({
-        id: crypto.randomUUID(),
-        type: 'T4A',
-        payerName: data.payerName || '',
-        boxes: {
-          16: data.boxes[16] || 0,
-          18: data.boxes[18] || 0,
-          20: data.boxes[20] || 0,
-          22: data.boxes[22] || 0,
-          28: data.boxes[28] || 0
-        }
-      });
-      setActiveForm('t4a');
-    } else if (data.type === 'T5') {
-      setEditingSlip({
-        id: crypto.randomUUID(),
-        type: 'T5',
-        payerName: data.payerName || '',
-        boxes: {
-          13: data.boxes[13] || 0,
-          24: data.boxes[24] || 0,
-          25: data.boxes[25] || 0
-        }
-      });
-      setActiveForm('t5');
-    } else {
-      // Unknown type - try to determine from boxes
-      if (data.boxes[14]) {
-        handleParsedData({ ...data, type: 'T4' });
-      } else if (data.boxes[16] || data.boxes[28]) {
-        handleParsedData({ ...data, type: 'T4A' });
-      } else if (data.boxes[13] || data.boxes[24]) {
-        handleParsedData({ ...data, type: 'T5' });
-      }
+        break;
     }
   };
 

@@ -4,6 +4,7 @@ import { useTaxReturn, Profile } from '../../context/TaxReturnContext';
 import { PROVINCES } from '../../domain/tax';
 import { Button } from '../../components/ui/Button';
 import { Input, Select, MoneyInput } from '../../components/ui/Input';
+import { AddressInput } from '../../components/ui/AddressInput';
 
 // Clean dropdown-style Yes/No select matching Wealthsimple
 function YesNoSelect({
@@ -559,56 +560,24 @@ export function ProfilePage() {
             <input type="text" style={{ width: '200px', padding: '8px 12px', fontSize: '14px', border: '1px solid #E5E7EB', borderRadius: '6px' }} />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '80px 100px 1fr', gap: '12px', marginBottom: '12px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', color: '#6B7280', marginBottom: '6px' }}>Unit</label>
-              <input type="text" style={{ width: '100%', padding: '8px 12px', fontSize: '14px', border: '1px solid #E5E7EB', borderRadius: '6px', boxSizing: 'border-box' }} />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', color: '#6B7280', marginBottom: '6px' }}>Street number</label>
-              <input type="text" style={{ width: '100%', padding: '8px 12px', fontSize: '14px', border: '1px solid #E5E7EB', borderRadius: '6px', boxSizing: 'border-box' }} />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', color: '#6B7280', marginBottom: '6px' }}>Street name<span style={{ color: '#DC2626' }}>*</span></label>
-              <input
-                type="text"
-                value={profile.address}
-                onChange={(e) => handleChange('address', e.target.value)}
-                style={{ width: '100%', padding: '8px 12px', fontSize: '14px', border: '1px solid #E5E7EB', borderRadius: '6px', boxSizing: 'border-box' }}
-              />
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px', gap: '12px', marginBottom: '12px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', color: '#6B7280', marginBottom: '6px' }}>City<span style={{ color: '#DC2626' }}>*</span></label>
-              <input
-                type="text"
-                value={profile.city}
-                onChange={(e) => handleChange('city', e.target.value)}
-                style={{ width: '100%', padding: '8px 12px', fontSize: '14px', border: '1px solid #E5E7EB', borderRadius: '6px', boxSizing: 'border-box' }}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', color: '#6B7280', marginBottom: '6px' }}>Province<span style={{ color: '#DC2626' }}>*</span></label>
-              <select
-                value={profile.province}
-                onChange={(e) => handleChange('province', e.target.value)}
-                style={{ width: '100%', padding: '8px 12px', fontSize: '14px', border: '1px solid #E5E7EB', borderRadius: '6px', backgroundColor: 'white' }}
-              >
-                {provinceOptions.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
-              </select>
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', color: '#6B7280', marginBottom: '6px' }}>Postal code<span style={{ color: '#DC2626' }}>*</span></label>
-              <input
-                type="text"
-                value={profile.postalCode}
-                onChange={(e) => handleChange('postalCode', e.target.value.toUpperCase())}
-                style={{ width: '100%', padding: '8px 12px', fontSize: '14px', border: '1px solid #E5E7EB', borderRadius: '6px', boxSizing: 'border-box' }}
-              />
-            </div>
-          </div>
+          {/* Canada Post AddressComplete Integration */}
+          <AddressInput
+            label="Start typing your address"
+            required
+            value={{
+              street: profile.address || '',
+              unit: undefined,
+              city: profile.city || '',
+              province: profile.province || 'ON',
+              postalCode: profile.postalCode || ''
+            }}
+            onChange={(address) => {
+              handleChange('address', address.street);
+              handleChange('city', address.city);
+              handleChange('province', address.province);
+              handleChange('postalCode', address.postalCode);
+            }}
+          />
 
           <div style={{ marginBottom: '12px' }}>
             <label style={{ display: 'block', fontSize: '12px', color: '#6B7280', marginBottom: '6px' }}>Home telephone number</label>
