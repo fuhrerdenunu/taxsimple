@@ -68,7 +68,9 @@ export default function App() {
               path="/dashboard"
               element={
                 <ProtectedRoute>
-                  <DashboardPage />
+                  <TaxReturnProvider>
+                    <DashboardPage />
+                  </TaxReturnProvider>
                 </ProtectedRoute>
               }
             />
