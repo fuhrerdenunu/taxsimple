@@ -1,12 +1,12 @@
 // TaxSimple - Complete Canadian Tax Filing Application
-// Single-file React implementation with comprehensive tax engine
+// Single-file React implementation with modular tax engine
 
 import React, { useState, useMemo, useReducer, createContext, useContext, useRef } from 'react';
 
-// ============================================================================
-// TAX ENGINE - Comprehensive Canadian Tax Calculations
-// ============================================================================
+// Import the new modular tax engine
+import { calculateTax, PROVINCES, formatCurrency } from './domain/tax';
 
+// Legacy TAX_CONFIG kept for reference during migration - will be removed
 const TAX_CONFIG = {
   2024: {
     federal: {
@@ -184,150 +184,8 @@ const TAX_CONFIG = {
   }
 };
 
-const PROVINCES = Object.entries(TAX_CONFIG[2024].provincial).map(([code, data]) => ({
-  code,
-  name: data.name
-}));
-
-const formatCurrency = (amount, cents = true) => {
-  const num = parseFloat(amount) || 0;
-  return new Intl.NumberFormat('en-CA', {
-    style: 'currency',
-    currency: 'CAD',
-    minimumFractionDigits: cents ? 2 : 0,
-    maximumFractionDigits: cents ? 2 : 0
-  }).format(num);
-};
-
-const calculateBracketedTax = (income, brackets) => {
-  let tax = 0;
-  let remaining = income;
-  for (const bracket of brackets) {
-    if (remaining <= 0) break;
-    const taxable = Math.min(remaining, bracket.max - bracket.min);
-    tax += taxable * bracket.rate;
-    remaining -= taxable;
-  }
-  return Math.max(0, tax);
-};
-
-const calculateOntarioHealthPremium = (income) => {
-  const brackets = TAX_CONFIG[2024].provincial.ON.healthPremium;
-  let prev = 0;
-  for (const b of brackets) {
-    if (income <= b.max) {
-      if (b.amount !== undefined) return b.amount;
-      let premium = (b.base || 0) + (income - prev) * b.rate;
-      if (b.cap) premium = Math.min(premium, b.cap);
-      return premium;
-    }
-    prev = b.max;
-  }
-  return 900;
-};
-
-const calculateTax = (data) => {
-  const config = TAX_CONFIG[2024];
-  const prov = config.provincial[data.province] || config.provincial.ON;
-  
-  // Total Income
-  const totalIncome = (data.employmentIncome || 0) + 
-    (data.selfEmploymentIncome || 0) + 
-    (data.rentalIncome || 0) + 
-    (data.interestIncome || 0) +
-    (data.dividendIncome || 0) * 1.38 + // Gross-up eligible dividends
-    (data.capitalGains || 0) * 0.5 + // 50% inclusion
-    (data.otherIncome || 0);
-  
-  // Deductions
-  const totalDeductions = Math.min(data.rrspDeduction || 0, config.rrsp.limit) +
-    Math.min(data.fhsaDeduction || 0, config.fhsa.annual) +
-    (data.childcareExpenses || 0) +
-    (data.movingExpenses || 0) +
-    (data.unionDues || 0);
-  
-  const taxableIncome = Math.max(0, totalIncome - totalDeductions);
-  
-  // Federal Tax
-  let federalTax = calculateBracketedTax(taxableIncome, config.federal.brackets);
-  
-  // Federal Credits
-  const fedRate = 0.15;
-  let bpa = config.federal.basicPersonalAmount;
-  if (taxableIncome > config.federal.bpaReduction.start) {
-    const reduction = (taxableIncome - config.federal.bpaReduction.start) / 
-      (config.federal.bpaReduction.end - config.federal.bpaReduction.start);
-    bpa = bpa - (bpa - config.federal.bpaReduction.minBPA) * Math.min(1, reduction);
-  }
-  
-  const fedCredits = 
-    bpa * fedRate +
-    Math.min(data.employmentIncome || 0, config.canadaEmploymentCredit) * fedRate +
-    Math.min(data.cppContributions || 0, config.cpp.max) * fedRate +
-    Math.min(data.eiPremiums || 0, config.ei.max) * fedRate +
-    (data.dividendIncome || 0) * 1.38 * 0.150198 + // Dividend tax credit
-    calculateDonationCredit(data.donations || 0, taxableIncome) +
-    Math.max(0, (data.medicalExpenses || 0) - Math.min(taxableIncome * 0.03, config.medicalThreshold.max)) * fedRate +
-    (data.tuitionAmount || 0) * fedRate;
-  
-  federalTax = Math.max(0, federalTax - fedCredits);
-  
-  // Quebec abatement
-  if (data.province === 'QC') {
-    federalTax *= (1 - prov.abatement);
-  }
-  
-  // Provincial Tax
-  let provincialTax = calculateBracketedTax(taxableIncome, prov.brackets);
-  const provCredits = prov.bpa * prov.brackets[0].rate;
-  provincialTax = Math.max(0, provincialTax - provCredits);
-  
-  // Ontario surtax
-  if (data.province === 'ON' && prov.surtax) {
-    let surtax = 0;
-    if (provincialTax > prov.surtax.first) {
-      surtax += (provincialTax - prov.surtax.first) * prov.surtax.firstRate;
-    }
-    if (provincialTax > prov.surtax.second) {
-      surtax += (provincialTax - prov.surtax.second) * prov.surtax.secondRate;
-    }
-    provincialTax += surtax;
-  }
-  
-  // PEI surtax
-  if (data.province === 'PE' && prov.surtax && provincialTax > prov.surtax.threshold) {
-    provincialTax += (provincialTax - prov.surtax.threshold) * prov.surtax.rate;
-  }
-  
-  // Health premium (Ontario)
-  const healthPremium = data.province === 'ON' ? calculateOntarioHealthPremium(taxableIncome) : 0;
-  
-  const totalTax = federalTax + provincialTax + healthPremium;
-  const totalWithheld = (data.taxWithheld || 0);
-  const refundOrOwing = totalWithheld - totalTax;
-  
-  return {
-    totalIncome,
-    totalDeductions,
-    taxableIncome,
-    federalTax,
-    provincialTax,
-    healthPremium,
-    totalTax,
-    totalWithheld,
-    refundOrOwing,
-    isRefund: refundOrOwing >= 0,
-    provinceName: prov.name
-  };
-};
-
-const calculateDonationCredit = (donations, income) => {
-  if (donations <= 0) return 0;
-  const config = TAX_CONFIG[2024].donations;
-  const first = Math.min(donations, config.firstTier) * config.lowRate;
-  const rest = Math.max(0, donations - config.firstTier) * config.highRate;
-  return first + rest;
-};
+// PROVINCES, formatCurrency, and calculateTax are now imported from './domain/tax'
+// The legacy TAX_CONFIG above is kept for reference but not used
 
 // ============================================================================
 // ICONS
