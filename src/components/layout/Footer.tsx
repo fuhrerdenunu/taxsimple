@@ -49,15 +49,15 @@ export function Footer() {
               Product
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <Link to="/" style={{ fontSize: '14px', color: '#6B7280', textDecoration: 'none' }}>
+              <Link to="/#features" style={{ fontSize: '14px', color: '#6B7280', textDecoration: 'none' }}>
                 Features
               </Link>
-              <Link to="/" style={{ fontSize: '14px', color: '#6B7280', textDecoration: 'none' }}>
+              <Link to="/#pricing" style={{ fontSize: '14px', color: '#6B7280', textDecoration: 'none' }}>
                 Pricing
               </Link>
-              <Link to="/" style={{ fontSize: '14px', color: '#6B7280', textDecoration: 'none' }}>
+              <a href="https://www.canada.ca/en/revenue-agency/services/e-services/e-services-individuals/netfile-overview/netfile-security.html" target="_blank" rel="noopener noreferrer" style={{ fontSize: '14px', color: '#6B7280', textDecoration: 'none' }}>
                 Security
-              </Link>
+              </a>
             </div>
           </div>
 

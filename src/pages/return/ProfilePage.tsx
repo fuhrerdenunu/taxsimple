@@ -5,6 +5,7 @@ import { PROVINCES } from '../../domain/tax';
 import { Button } from '../../components/ui/Button';
 import { Input, Select, MoneyInput } from '../../components/ui/Input';
 import { AddressInput } from '../../components/ui/AddressInput';
+import { ToggleQuestion, ToggleSwitchCompact } from '../../components/ui/ToggleSwitch';
 
 // Clean dropdown-style Yes/No select matching Wealthsimple
 function YesNoSelect({
@@ -427,10 +428,9 @@ export function ProfilePage() {
         </div>
 
         <InfoRow label="Is this return for a deceased person?">
-          <InlineSelect
-            value={ext.isDeceasedReturn ? 'yes' : 'no'}
-            onChange={(v) => handleExt('isDeceasedReturn', v === 'yes')}
-            options={yesNoOptions}
+          <ToggleSwitchCompact
+            value={ext.isDeceasedReturn}
+            onChange={(v) => handleExt('isDeceasedReturn', v)}
           />
         </InfoRow>
       </Section>
@@ -472,14 +472,18 @@ export function ProfilePage() {
             <p style={{ fontSize: '13px', color: '#6B7280', marginBottom: '16px' }}>
               Begin your tax filing by connecting to your CRA My Account. This will automatically add and fill in your T-slips and other tax information.
             </p>
-            <button style={{
-              padding: '10px 20px',
-              border: '1px solid #D1D5DB',
-              borderRadius: '20px',
-              backgroundColor: 'white',
-              fontSize: '14px',
-              cursor: 'pointer'
-            }}>
+            <button
+              type="button"
+              onClick={() => window.open('https://www.canada.ca/en/revenue-agency/services/e-services/e-services-individuals/account-individuals.html', '_blank')}
+              style={{
+                padding: '10px 20px',
+                border: '1px solid #D1D5DB',
+                borderRadius: '20px',
+                backgroundColor: 'white',
+                fontSize: '14px',
+                cursor: 'pointer'
+              }}
+            >
               Connect to CRA
             </button>
           </div>
@@ -542,7 +546,7 @@ export function ProfilePage() {
                 width: '120px'
               }}
             />
-            <a href="#" style={{ fontSize: '13px', color: '#6B7280' }}>Learn more</a>
+            <a href="https://www.canada.ca/en/revenue-agency/services/e-services/e-services-individuals/netfile-overview.html" target="_blank" rel="noopener noreferrer" style={{ fontSize: '13px', color: '#6B7280', textDecoration: 'underline' }}>Learn more</a>
           </div>
         </div>
 
@@ -765,24 +769,19 @@ export function ProfilePage() {
           </InfoRow>
 
           <InfoRow label="Are you a Canadian citizen?">
-            <InlineSelect
-              value={ext.isCanadianCitizen ? 'yes' : 'no'}
-              onChange={(v) => handleExt('isCanadianCitizen', v === 'yes')}
-              options={yesNoOptions}
+            <ToggleSwitchCompact
+              value={ext.isCanadianCitizen}
+              onChange={(v) => handleExt('isCanadianCitizen', v)}
             />
           </InfoRow>
 
           {ext.isCanadianCitizen && (
-            <InfoRow
-              label="As a Canadian citizen, do you authorize the Canada Revenue Agency to give your name, address, date of birth, and citizenship to Elections Canada to update the National Register of Electors or, if you are aged 14 to 17, to update the Register of Future Electors?"
-              hint="Your information is protected under the Canada Elections Act"
-            >
-              <InlineSelect
-                value={ext.electionsCanada ? 'yes' : 'no'}
-                onChange={(v) => handleExt('electionsCanada', v === 'yes')}
-                options={yesNoOptions}
-              />
-            </InfoRow>
+            <ToggleQuestion
+              question="As a Canadian citizen, do you authorize the Canada Revenue Agency to give your name, address, date of birth, and citizenship to Elections Canada to update the National Register of Electors or, if you are aged 14 to 17, to update the Register of Future Electors?"
+              description="Your information is protected under the Canada Elections Act"
+              value={ext.electionsCanada}
+              onChange={(v) => handleExt('electionsCanada', v)}
+            />
           )}
 
           <InfoRow label="Are you a person registered under the Indian Act?" hint="This affects tax exemptions on reserve income">
@@ -795,31 +794,24 @@ export function ProfilePage() {
 
           <h4 style={{ fontSize: '14px', fontWeight: 500, color: '#374151', margin: '20px 0 12px' }}>Property and things you may have invested in</h4>
 
-          <InfoRow
-            label={`Did you own or hold specified foreign property where the total cost amount of all such property, at any time in the year, was more than CAN$100,000 in ${year}?`}
-            hint="Includes foreign bank accounts, shares, and real estate"
-            required
-          >
-            <InlineSelect
-              value={ext.hasForeignPropertyOver100K ? 'yes' : 'no'}
-              onChange={(v) => handleExt('hasForeignPropertyOver100K', v === 'yes')}
-              options={yesNoOptions}
-            />
-          </InfoRow>
+          <ToggleQuestion
+            question={`Did you own or hold specified foreign property where the total cost amount of all such property, at any time in the year, was more than CAN$100,000 in ${year}?`}
+            description="Includes foreign bank accounts, shares, and real estate"
+            value={ext.hasForeignPropertyOver100K}
+            onChange={(v) => handleExt('hasForeignPropertyOver100K', v)}
+          />
 
           <InfoRow label={`Did you dispose of your principal residence in ${year}?`} hint="Selling or transferring your main home">
-            <InlineSelect
-              value={ext.disposedPrincipalResidence ? 'yes' : 'no'}
-              onChange={(v) => handleExt('disposedPrincipalResidence', v === 'yes')}
-              options={yesNoOptions}
+            <ToggleSwitchCompact
+              value={ext.disposedPrincipalResidence}
+              onChange={(v) => handleExt('disposedPrincipalResidence', v)}
             />
           </InfoRow>
 
           <InfoRow label={`Did you flip a property in ${year}?`} hint="Buying and selling a property within 12 months">
-            <InlineSelect
-              value={ext.flippedProperty ? 'yes' : 'no'}
-              onChange={(v) => handleExt('flippedProperty', v === 'yes')}
-              options={yesNoOptions}
+            <ToggleSwitchCompact
+              value={ext.flippedProperty}
+              onChange={(v) => handleExt('flippedProperty', v)}
             />
           </InfoRow>
 

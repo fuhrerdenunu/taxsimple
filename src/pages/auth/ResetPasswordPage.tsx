@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
@@ -271,9 +271,9 @@ export function ResetPasswordPage() {
 
         <p style={{ marginTop: '24px', textAlign: 'center', fontSize: '14px', color: '#6B7280' }}>
           Remember your password?{' '}
-          <a href="/auth/login" style={{ color: '#0D5F2B', fontWeight: 500 }}>
+          <Link to="/auth/login" style={{ color: '#0D5F2B', fontWeight: 500, textDecoration: 'none' }}>
             Back to login
-          </a>
+          </Link>
         </p>
       </Card>
     </div>

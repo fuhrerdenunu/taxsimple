@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -190,9 +190,9 @@ export function VerifyPage() {
 
         <p style={{ marginTop: '24px', fontSize: '14px', color: '#6B7280' }}>
           Wrong email?{' '}
-          <a href="/auth/register" style={{ color: '#0D5F2B', fontWeight: 500 }}>
+          <Link to="/auth/register" style={{ color: '#0D5F2B', fontWeight: 500, textDecoration: 'none' }}>
             Sign up again
-          </a>
+          </Link>
         </p>
       </Card>
     </div>

@@ -12,7 +12,59 @@ import { T5Form } from '../../components/tax/T5Form';
 import { FileUpload } from '../../components/tax/FileUpload';
 import { ParsedSlipData } from '../../utils/pdf-parser';
 
-type ActiveForm = 'none' | 't4' | 't4a' | 't4e' | 't4fhsa' | 't2125' | 't5' | 't3' | 't5008' | 'tuition' | 'rl1';
+type ActiveForm = 'none' | 't4' | 't4a' | 't4e' | 't4fhsa' | 't2125' | 't5' | 't3' | 't5008' | 'tuition' | 'rl1' | 'rrsp' | 'capitalGains';
+
+// Form categories like Wealthsimple Tax
+const FORM_CATEGORIES = {
+  employment: {
+    label: 'Employment',
+    icon: '💼',
+    forms: [
+      { id: 't4', name: 'T4', description: 'Employment Income' },
+      { id: 't4a', name: 'T4A', description: 'Pension & Other Income' },
+      { id: 't4e', name: 'T4E', description: 'Employment Insurance Benefits' },
+    ]
+  },
+  selfEmployment: {
+    label: 'Self-Employment',
+    icon: '🏢',
+    forms: [
+      { id: 't2125', name: 'T2125', description: 'Business/Professional Income' },
+    ]
+  },
+  investment: {
+    label: 'Investment',
+    icon: '📈',
+    forms: [
+      { id: 't5', name: 'T5', description: 'Interest & Dividends' },
+      { id: 't3', name: 'T3', description: 'Trust Income' },
+      { id: 't5008', name: 'T5008', description: 'Securities Transactions' },
+      { id: 'capitalGains', name: 'Capital Gains', description: 'Sale of Stocks & Property' },
+    ]
+  },
+  retirement: {
+    label: 'Retirement & Savings',
+    icon: '🏦',
+    forms: [
+      { id: 'rrsp', name: 'RRSP', description: 'Registered Retirement Savings' },
+      { id: 't4fhsa', name: 'T4FHSA', description: 'First Home Savings Account' },
+    ]
+  },
+  education: {
+    label: 'Education',
+    icon: '🎓',
+    forms: [
+      { id: 'tuition', name: 'T2202', description: 'Tuition & Education' },
+    ]
+  },
+  quebec: {
+    label: 'Quebec',
+    icon: '⚜️',
+    forms: [
+      { id: 'rl1', name: 'RL-1', description: 'Quebec Employment Income' },
+    ]
+  }
+};
 
 export function IncomePage() {
   const navigate = useNavigate();
@@ -20,6 +72,9 @@ export function IncomePage() {
   const { state, dispatch } = useTaxReturn();
   const [activeForm, setActiveForm] = useState<ActiveForm>('none');
   const [editingSlip, setEditingSlip] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [showFormSearch, setShowFormSearch] = useState(false);
 
   const t4Slips = state.currentReturn.slips.filter(s => s.type === 'T4') as T4Slip[];
   const t4aSlips = state.currentReturn.slips.filter(s => s.type === 'T4A') as T4ASlip[];
@@ -123,6 +178,39 @@ export function IncomePage() {
 
   const handleOtherIncomeChange = (field: string, value: number) => {
     dispatch({ type: 'UPDATE_OTHER_INCOME', payload: { [field]: value } });
+  };
+
+  // Handle form selection from search/category filter
+  const handleFormSelect = (formId: string) => {
+    switch (formId) {
+      case 't4':
+        handleAddT4();
+        break;
+      case 't4a':
+        handleAddT4A();
+        break;
+      case 't5':
+        handleAddT5();
+        break;
+      case 't2125':
+        handleAddT2125();
+        break;
+      case 'rrsp':
+        // Navigate to deductions page RRSP section
+        navigate(`/return/${taxYear}/deductions#rrsp`);
+        break;
+      case 'capitalGains':
+        // Scroll to capital gains section or open modal
+        setActiveForm('capitalGains');
+        break;
+      case 'tuition':
+        // Navigate to deductions page tuition section
+        navigate(`/return/${taxYear}/deductions#tuition`);
+        break;
+      default:
+        // For other forms, show alert that they're coming soon
+        alert(`${formId.toUpperCase()} form support coming soon!`);
+    }
   };
 
   // Handle parsed PDF data - supports all major Canadian tax slip types
@@ -340,6 +428,119 @@ export function IncomePage() {
           Upload your T4, T4A, or T5 slips as PDF files and we'll extract the information automatically.
         </p>
         <FileUpload onDataParsed={handleParsedData} />
+      </Card>
+
+      {/* Search and Add Forms - Like Wealthsimple Tax */}
+      <Card style={{ marginBottom: '24px' }}>
+        <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: '#1F2937' }}>
+          Add Tax Forms
+        </h2>
+        <p style={{ fontSize: '14px', color: '#6B7280', marginBottom: '16px' }}>
+          Search for forms or filter by category to add to your return.
+        </p>
+
+        {/* Search Box */}
+        <div style={{ position: 'relative', marginBottom: '16px' }}>
+          <input
+            type="text"
+            placeholder="Search forms (e.g., T4, RRSP, donations...)"
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setShowFormSearch(true);
+            }}
+            onFocus={() => setShowFormSearch(true)}
+            style={{
+              width: '100%',
+              padding: '12px 16px',
+              fontSize: '15px',
+              border: '1px solid #E5E7EB',
+              borderRadius: '8px',
+              outline: 'none',
+            }}
+          />
+          {showFormSearch && (searchQuery || selectedCategory) && (
+            <div style={{
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              right: 0,
+              backgroundColor: 'white',
+              border: '1px solid #E5E7EB',
+              borderRadius: '8px',
+              marginTop: '4px',
+              maxHeight: '300px',
+              overflow: 'auto',
+              zIndex: 100,
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+            }}>
+              {Object.entries(FORM_CATEGORIES)
+                .filter(([key, cat]) => !selectedCategory || key === selectedCategory)
+                .flatMap(([, cat]) => cat.forms)
+                .filter(form =>
+                  !searchQuery ||
+                  form.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  form.description.toLowerCase().includes(searchQuery.toLowerCase())
+                )
+                .map(form => (
+                  <button
+                    key={form.id}
+                    onClick={() => {
+                      handleFormSelect(form.id);
+                      setSearchQuery('');
+                      setShowFormSearch(false);
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      textAlign: 'left',
+                      border: 'none',
+                      borderBottom: '1px solid #F3F4F6',
+                      backgroundColor: 'transparent',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontWeight: 500, color: '#1F2937' }}>{form.name}</div>
+                      <div style={{ fontSize: '13px', color: '#6B7280' }}>{form.description}</div>
+                    </div>
+                    <span style={{ color: '#0D5F2B', fontSize: '20px' }}>+</span>
+                  </button>
+                ))}
+            </div>
+          )}
+        </div>
+
+        {/* Category Filter Buttons */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          {Object.entries(FORM_CATEGORIES).map(([key, category]) => (
+            <button
+              key={key}
+              onClick={() => {
+                setSelectedCategory(selectedCategory === key ? null : key);
+                setShowFormSearch(true);
+              }}
+              style={{
+                padding: '8px 16px',
+                fontSize: '14px',
+                border: selectedCategory === key ? '2px solid #0D5F2B' : '1px solid #E5E7EB',
+                borderRadius: '20px',
+                backgroundColor: selectedCategory === key ? '#E8F5E9' : 'white',
+                color: selectedCategory === key ? '#0D5F2B' : '#4B5563',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              <span>{category.icon}</span>
+              <span>{category.label}</span>
+            </button>
+          ))}
+        </div>
       </Card>
 
       {/* T4 Employment Income */}
