@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useTaxReturn, T4Slip, T4ASlip, T5Slip, T2125Data } from '../../context/TaxReturnContext';
+import { useTaxReturn, T4Slip, T4ASlip, T5Slip, T2125Data, CapitalGainsTransaction } from '../../context/TaxReturnContext';
 import { formatCurrency } from '../../domain/tax';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -9,6 +9,7 @@ import { Alert } from '../../components/ui/Alert';
 import { T4AForm } from '../../components/tax/T4AForm';
 import { T2125Form } from '../../components/tax/T2125Form';
 import { T5Form } from '../../components/tax/T5Form';
+import { CapitalGainsForm } from '../../components/tax/CapitalGainsForm';
 import { FileUpload } from '../../components/tax/FileUpload';
 import { ParsedSlipData } from '../../utils/pdf-parser';
 
@@ -75,11 +76,14 @@ export function IncomePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showFormSearch, setShowFormSearch] = useState(false);
+  const [notification, setNotification] = useState<{ type: 'info' | 'success' | 'warning'; message: string } | null>(null);
 
   const t4Slips = state.currentReturn.slips.filter(s => s.type === 'T4') as T4Slip[];
   const t4aSlips = state.currentReturn.slips.filter(s => s.type === 'T4A') as T4ASlip[];
   const t5Slips = state.currentReturn.slips.filter(s => s.type === 'T5') as T5Slip[];
   const t2125Data = state.currentReturn.slips.filter(s => s.type === 'T2125') as T2125Data[];
+  const capitalGainsTransactions = state.currentReturn.slips.filter(s => s.type === 'CapitalGains') as CapitalGainsTransaction[];
+  const [editingCapitalGains, setEditingCapitalGains] = useState<CapitalGainsTransaction | null>(null);
 
   // T4 Handlers
   const handleAddT4 = () => {
@@ -200,7 +204,18 @@ export function IncomePage() {
         navigate(`/return/${taxYear}/deductions#rrsp`);
         break;
       case 'capitalGains':
-        // Scroll to capital gains section or open modal
+        // Open capital gains form modal
+        setEditingCapitalGains({
+          id: crypto.randomUUID(),
+          type: 'CapitalGains',
+          description: '',
+          dateAcquired: '',
+          dateSold: '',
+          proceeds: 0,
+          adjustedCostBase: 0,
+          outlayAndExpenses: 0,
+          gain: 0
+        });
         setActiveForm('capitalGains');
         break;
       case 'tuition':
@@ -208,8 +223,9 @@ export function IncomePage() {
         navigate(`/return/${taxYear}/deductions#tuition`);
         break;
       default:
-        // For other forms, show alert that they're coming soon
-        alert(`${formId.toUpperCase()} form support coming soon!`);
+        // For other forms, show notification that they're coming soon
+        setNotification({ type: 'info', message: `${formId.toUpperCase()} form support coming soon!` });
+        setTimeout(() => setNotification(null), 4000);
     }
   };
 
@@ -419,6 +435,15 @@ export function IncomePage() {
         </div>
       )}
 
+      {/* Notification Toast */}
+      {notification && (
+        <div style={{ marginBottom: '24px' }}>
+          <Alert type={notification.type} onClose={() => setNotification(null)}>
+            {notification.message}
+          </Alert>
+        </div>
+      )}
+
       {/* File Upload Section */}
       <Card style={{ marginBottom: '24px' }}>
         <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: '#1F2937' }}>
@@ -441,7 +466,11 @@ export function IncomePage() {
 
         {/* Search Box */}
         <div style={{ position: 'relative', marginBottom: '16px' }}>
+          <label htmlFor="form-search" className="sr-only" style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', clip: 'rect(0,0,0,0)' }}>
+            Search tax forms
+          </label>
           <input
+            id="form-search"
             type="text"
             placeholder="Search forms (e.g., T4, RRSP, donations...)"
             value={searchQuery}
@@ -450,6 +479,9 @@ export function IncomePage() {
               setShowFormSearch(true);
             }}
             onFocus={() => setShowFormSearch(true)}
+            aria-expanded={showFormSearch && (!!searchQuery || !!selectedCategory)}
+            aria-haspopup="listbox"
+            aria-autocomplete="list"
             style={{
               width: '100%',
               padding: '12px 16px',
@@ -460,20 +492,24 @@ export function IncomePage() {
             }}
           />
           {showFormSearch && (searchQuery || selectedCategory) && (
-            <div style={{
-              position: 'absolute',
-              top: '100%',
-              left: 0,
-              right: 0,
-              backgroundColor: 'white',
-              border: '1px solid #E5E7EB',
-              borderRadius: '8px',
-              marginTop: '4px',
-              maxHeight: '300px',
-              overflow: 'auto',
-              zIndex: 100,
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-            }}>
+            <div
+              role="listbox"
+              aria-label="Available tax forms"
+              style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                backgroundColor: 'white',
+                border: '1px solid #E5E7EB',
+                borderRadius: '8px',
+                marginTop: '4px',
+                maxHeight: '300px',
+                overflow: 'auto',
+                zIndex: 100,
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+              }}
+            >
               {Object.entries(FORM_CATEGORIES)
                 .filter(([key, cat]) => !selectedCategory || key === selectedCategory)
                 .flatMap(([, cat]) => cat.forms)
@@ -485,6 +521,8 @@ export function IncomePage() {
                 .map(form => (
                   <button
                     key={form.id}
+                    role="option"
+                    aria-label={`Add ${form.name} - ${form.description}`}
                     onClick={() => {
                       handleFormSelect(form.id);
                       setSearchQuery('');
@@ -507,7 +545,7 @@ export function IncomePage() {
                       <div style={{ fontWeight: 500, color: '#1F2937' }}>{form.name}</div>
                       <div style={{ fontSize: '13px', color: '#6B7280' }}>{form.description}</div>
                     </div>
-                    <span style={{ color: '#0D5F2B', fontSize: '20px' }}>+</span>
+                    <span aria-hidden="true" style={{ color: '#0D5F2B', fontSize: '20px' }}>+</span>
                   </button>
                 ))}
             </div>
@@ -515,10 +553,13 @@ export function IncomePage() {
         </div>
 
         {/* Category Filter Buttons */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+        <div role="group" aria-label="Filter forms by category" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
           {Object.entries(FORM_CATEGORIES).map(([key, category]) => (
             <button
               key={key}
+              type="button"
+              aria-pressed={selectedCategory === key}
+              aria-label={`Filter by ${category.label}`}
               onClick={() => {
                 setSelectedCategory(selectedCategory === key ? null : key);
                 setShowFormSearch(true);
@@ -723,12 +764,103 @@ export function IncomePage() {
           hint="Net rental income after expenses"
         />
 
-        <MoneyInput
-          label="Capital Gains"
-          value={state.currentReturn.otherIncome.capitalGains}
-          onChange={(value) => handleOtherIncomeChange('capitalGains', value)}
-          hint="Total gains from selling investments (before 50% inclusion)"
-        />
+        {/* Capital Gains Transactions */}
+        <div style={{ marginBottom: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <label style={{ fontSize: '14px', fontWeight: 500, color: '#374151' }}>
+              Capital Gains Transactions
+            </label>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                setEditingCapitalGains({
+                  id: crypto.randomUUID(),
+                  type: 'CapitalGains',
+                  description: '',
+                  dateAcquired: '',
+                  dateSold: '',
+                  proceeds: 0,
+                  adjustedCostBase: 0,
+                  outlayAndExpenses: 0,
+                  gain: 0
+                });
+                setActiveForm('capitalGains');
+              }}
+            >
+              + Add Transaction
+            </Button>
+          </div>
+
+          {capitalGainsTransactions.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {capitalGainsTransactions.map(transaction => (
+                <div
+                  key={transaction.id}
+                  style={{
+                    padding: '12px 16px',
+                    backgroundColor: '#F9FAFB',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    border: '1px solid #E5E7EB'
+                  }}
+                >
+                  <div>
+                    <div style={{ fontWeight: 500, color: '#1F2937' }}>{transaction.description || 'Capital Gain'}</div>
+                    <div style={{ fontSize: '13px', color: '#6B7280' }}>
+                      Gain: {formatCurrency(transaction.gain)} (Taxable: {formatCurrency(transaction.gain > 0 ? transaction.gain * 0.5 : 0)})
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      onClick={() => {
+                        setEditingCapitalGains({ ...transaction });
+                        setActiveForm('capitalGains');
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#0D5F2B',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        fontWeight: 500
+                      }}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => dispatch({ type: 'DELETE_SLIP', payload: transaction.id })}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#DC2626',
+                        cursor: 'pointer',
+                        fontSize: '14px'
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+              <div style={{
+                padding: '12px',
+                backgroundColor: '#F0FDF4',
+                borderRadius: '8px',
+                textAlign: 'right',
+                fontWeight: 500
+              }}>
+                Total Taxable Capital Gains: {formatCurrency(capitalGainsTransactions.reduce((sum, t) => sum + (t.gain > 0 ? t.gain * 0.5 : 0), 0))}
+              </div>
+            </div>
+          ) : (
+            <p style={{ fontSize: '14px', color: '#6B7280', fontStyle: 'italic' }}>
+              No capital gains transactions added. Click "Add Transaction" to report sales of investments or property.
+            </p>
+          )}
+        </div>
 
         <MoneyInput
           label="Other Income"
@@ -789,6 +921,27 @@ export function IncomePage() {
           onSave={handleSaveSlip}
           onCancel={() => { setActiveForm('none'); setEditingSlip(null); }}
           isEditing={!!t5Slips.find(s => s.id === editingSlip.id)}
+        />
+      )}
+
+      {/* Capital Gains Form Modal */}
+      {activeForm === 'capitalGains' && editingCapitalGains && (
+        <CapitalGainsForm
+          transaction={editingCapitalGains}
+          onChange={setEditingCapitalGains}
+          onSave={() => {
+            if (!editingCapitalGains) return;
+            const existing = capitalGainsTransactions.find(t => t.id === editingCapitalGains.id);
+            if (existing) {
+              dispatch({ type: 'UPDATE_SLIP', payload: { id: editingCapitalGains.id, updates: editingCapitalGains } });
+            } else {
+              dispatch({ type: 'ADD_SLIP', payload: editingCapitalGains });
+            }
+            setActiveForm('none');
+            setEditingCapitalGains(null);
+          }}
+          onCancel={() => { setActiveForm('none'); setEditingCapitalGains(null); }}
+          isEditing={!!capitalGainsTransactions.find(t => t.id === editingCapitalGains.id)}
         />
       )}
 

@@ -100,70 +100,69 @@ export function ToggleSwitch({
   );
 }
 
-// Compact version for inline use
+// Compact inline toggle with Yes/No labels on either side
 export function ToggleSwitchCompact({
   value,
   onChange,
   disabled = false,
 }: Omit<ToggleSwitchProps, 'label' | 'description' | 'yesLabel' | 'noLabel'>) {
   return (
-    <button
-      type="button"
-      onClick={() => !disabled && onChange(!value)}
-      disabled={disabled}
-      style={{
-        position: 'relative',
-        width: '52px',
-        height: '28px',
-        backgroundColor: value ? '#10B981' : '#EF4444',
-        borderRadius: '14px',
-        border: 'none',
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        transition: 'background-color 0.2s ease',
-        opacity: disabled ? 0.6 : 1,
-        padding: 0,
-      }}
-    >
-      {/* Slider knob */}
-      <span
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <span style={{
+        fontSize: '13px',
+        fontWeight: 500,
+        color: !value ? '#EF4444' : '#9CA3AF',
+        transition: 'color 0.2s ease',
+        minWidth: '24px',
+        textAlign: 'right',
+      }}>
+        No
+      </span>
+      <button
+        type="button"
+        onClick={() => !disabled && onChange(!value)}
+        disabled={disabled}
+        aria-checked={value}
+        role="switch"
         style={{
-          position: 'absolute',
-          top: '2px',
-          left: value ? '26px' : '2px',
-          width: '24px',
-          height: '24px',
-          backgroundColor: 'white',
-          borderRadius: '50%',
-          transition: 'left 0.2s ease',
-          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+          position: 'relative',
+          width: '52px',
+          height: '28px',
+          backgroundColor: value ? '#10B981' : '#EF4444',
+          borderRadius: '14px',
+          border: 'none',
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          transition: 'background-color 0.25s ease',
+          opacity: disabled ? 0.6 : 1,
+          padding: 0,
+          flexShrink: 0,
         }}
-      />
-      {/* Yes/No text indicators */}
+      >
+        {/* Slider knob */}
+        <span
+          style={{
+            position: 'absolute',
+            top: '2px',
+            left: value ? '26px' : '2px',
+            width: '24px',
+            height: '24px',
+            backgroundColor: 'white',
+            borderRadius: '50%',
+            transition: 'left 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+          }}
+        />
+      </button>
       <span style={{
-        position: 'absolute',
-        left: '6px',
-        top: '50%',
-        transform: 'translateY(-50%)',
-        fontSize: '9px',
-        fontWeight: 700,
-        color: value ? 'rgba(255,255,255,0.8)' : 'transparent',
+        fontSize: '13px',
+        fontWeight: 500,
+        color: value ? '#10B981' : '#9CA3AF',
         transition: 'color 0.2s ease',
+        minWidth: '28px',
       }}>
-        Y
+        Yes
       </span>
-      <span style={{
-        position: 'absolute',
-        right: '6px',
-        top: '50%',
-        transform: 'translateY(-50%)',
-        fontSize: '9px',
-        fontWeight: 700,
-        color: !value ? 'rgba(255,255,255,0.8)' : 'transparent',
-        transition: 'color 0.2s ease',
-      }}>
-        N
-      </span>
-    </button>
+    </div>
   );
 }
 

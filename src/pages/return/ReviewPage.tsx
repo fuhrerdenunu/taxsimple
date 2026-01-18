@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useTaxReturn } from '../../context/TaxReturnContext';
+import { useTaxReturn, Profile, TaxReturn } from '../../context/TaxReturnContext';
 import { calculateTax, formatCurrency } from '../../domain/tax';
 import { validateSIN } from '../../domain/tax/validators/sin';
 import { Button } from '../../components/ui/Button';
@@ -14,7 +14,7 @@ interface ValidationIssue {
   action?: { label: string; path: string };
 }
 
-function validateReturn(profile: any, taxReturn: any): ValidationIssue[] {
+function validateReturn(profile: Profile, taxReturn: TaxReturn): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
 
   // Errors (blocking)
@@ -158,60 +158,131 @@ export function ReviewPage() {
           </h2>
 
           {errors.map(issue => (
-            <div key={issue.id} style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '12px',
-              marginBottom: '8px',
-              backgroundColor: '#FEE2E2',
-              borderRadius: '8px'
-            }}>
-              <span style={{ color: '#991B1B' }}>{issue.message}</span>
+            <div
+              key={issue.id}
+              onClick={() => issue.action && navigate(`/return/${taxYear}/${issue.action.path}`)}
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px 16px',
+                marginBottom: '8px',
+                backgroundColor: '#FEE2E2',
+                borderRadius: '8px',
+                cursor: issue.action ? 'pointer' : 'default',
+                transition: 'transform 0.1s ease, box-shadow 0.1s ease',
+                border: '1px solid #FECACA'
+              }}
+              onMouseEnter={(e) => {
+                if (issue.action) {
+                  e.currentTarget.style.transform = 'translateX(4px)';
+                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateX(0)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+              role={issue.action ? 'button' : undefined}
+              tabIndex={issue.action ? 0 : undefined}
+              onKeyDown={(e) => {
+                if (issue.action && (e.key === 'Enter' || e.key === ' ')) {
+                  navigate(`/return/${taxYear}/${issue.action.path}`);
+                }
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="15" y1="9" x2="9" y2="15" />
+                  <line x1="9" y1="9" x2="15" y2="15" />
+                </svg>
+                <span style={{ color: '#991B1B', fontWeight: 500 }}>{issue.message}</span>
+              </div>
               {issue.action && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => navigate(`/return/${taxYear}/${issue.action!.path}`)}
-                >
-                  {issue.action.label}
-                </Button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#991B1B' }}>
+                  <span style={{ fontSize: '14px' }}>{issue.action.label}</span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </div>
               )}
             </div>
           ))}
 
           {warnings.map(issue => (
-            <div key={issue.id} style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '12px',
-              marginBottom: '8px',
-              backgroundColor: '#FEF3C7',
-              borderRadius: '8px'
-            }}>
-              <span style={{ color: '#92400E' }}>{issue.message}</span>
+            <div
+              key={issue.id}
+              onClick={() => issue.action && navigate(`/return/${taxYear}/${issue.action.path}`)}
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px 16px',
+                marginBottom: '8px',
+                backgroundColor: '#FEF3C7',
+                borderRadius: '8px',
+                cursor: issue.action ? 'pointer' : 'default',
+                transition: 'transform 0.1s ease, box-shadow 0.1s ease',
+                border: '1px solid #FDE68A'
+              }}
+              onMouseEnter={(e) => {
+                if (issue.action) {
+                  e.currentTarget.style.transform = 'translateX(4px)';
+                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateX(0)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+              role={issue.action ? 'button' : undefined}
+              tabIndex={issue.action ? 0 : undefined}
+              onKeyDown={(e) => {
+                if (issue.action && (e.key === 'Enter' || e.key === ' ')) {
+                  navigate(`/return/${taxYear}/${issue.action.path}`);
+                }
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+                <span style={{ color: '#92400E', fontWeight: 500 }}>{issue.message}</span>
+              </div>
               {issue.action && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => navigate(`/return/${taxYear}/${issue.action!.path}`)}
-                >
-                  {issue.action.label}
-                </Button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#92400E' }}>
+                  <span style={{ fontSize: '14px' }}>{issue.action.label}</span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </div>
               )}
             </div>
           ))}
 
           {suggestions.map(issue => (
-            <div key={issue.id} style={{
-              padding: '12px',
-              marginBottom: '8px',
-              backgroundColor: '#EFF6FF',
-              borderRadius: '8px',
-              color: '#1E40AF'
-            }}>
-              {issue.message}
+            <div
+              key={issue.id}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '12px 16px',
+                marginBottom: '8px',
+                backgroundColor: '#EFF6FF',
+                borderRadius: '8px',
+                border: '1px solid #BFDBFE'
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="16" x2="12" y2="12" />
+                <line x1="12" y1="8" x2="12.01" y2="8" />
+              </svg>
+              <span style={{ color: '#1E40AF', fontWeight: 500 }}>{issue.message}</span>
             </div>
           ))}
         </Card>

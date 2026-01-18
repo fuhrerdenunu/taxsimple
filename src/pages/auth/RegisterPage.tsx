@@ -5,6 +5,7 @@ import { Header } from '../../components/layout/Header';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Alert } from '../../components/ui/Alert';
+import { CURRENT_TAX_YEAR } from '../../domain/tax';
 
 export function RegisterPage() {
   const navigate = useNavigate();
@@ -73,7 +74,7 @@ export function RegisterPage() {
             color: '#6B7280',
             marginBottom: '32px'
           }}>
-            Start filing your 2024 taxes today
+            Start filing your {CURRENT_TAX_YEAR} taxes today
           </p>
 
           {error && (

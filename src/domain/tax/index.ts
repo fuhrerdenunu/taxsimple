@@ -1,6 +1,9 @@
 // TaxSimple Tax Engine
 // Pure TypeScript tax calculation module for Canadian taxes
 
+// Current tax year - update this annually
+export const CURRENT_TAX_YEAR = 2024;
+
 // Main calculation function
 export { calculateTax } from './calculators';
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTaxReturn } from '../../context/TaxReturnContext';
-import { calculateTax, formatCurrency } from '../../domain/tax';
+import { calculateTax, formatCurrency, CURRENT_TAX_YEAR } from '../../domain/tax';
 import { generateTaxSummaryPDF, exportTaxDataJSON } from '../../utils/pdf-export';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -14,7 +14,7 @@ export function CompletePage() {
 
   const taxInput = getTaxInput();
   const taxResult = calculateTax(taxInput);
-  const year = parseInt(taxYear || '2024', 10);
+  const year = taxYear ? parseInt(taxYear, 10) : CURRENT_TAX_YEAR;
 
   const handleDownloadPDF = () => {
     generateTaxSummaryPDF(state.profile, taxResult, year, { maskSIN: true });

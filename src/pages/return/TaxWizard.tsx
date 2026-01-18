@@ -6,7 +6,7 @@ import { DeductionsPage } from './DeductionsPage';
 import { ReviewPage } from './ReviewPage';
 import { CompletePage } from './CompletePage';
 import { useTaxReturn } from '../../context/TaxReturnContext';
-import { calculateTax, formatCurrency } from '../../domain/tax';
+import { calculateTax, formatCurrency, CURRENT_TAX_YEAR } from '../../domain/tax';
 
 // Wealthsimple-style navigation sections
 interface NavSection {
@@ -48,7 +48,7 @@ const navSections: NavSection[] = [
 export function TaxWizard() {
   const { taxYear } = useParams();
   const location = useLocation();
-  const year = parseInt(taxYear || '2024', 10);
+  const year = taxYear ? parseInt(taxYear, 10) : CURRENT_TAX_YEAR;
   const { state } = useTaxReturn();
 
   const pathParts = location.pathname.split('/');

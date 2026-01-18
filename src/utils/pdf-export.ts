@@ -1,5 +1,8 @@
 import { jsPDF } from 'jspdf';
 import type { TaxResult } from '../domain/tax';
+import type { TaxReturn, T4Slip, T4ASlip, T5Slip, T2125Data, CapitalGainsTransaction } from '../context/TaxReturnContext';
+
+type Slip = T4Slip | T4ASlip | T5Slip | T2125Data | CapitalGainsTransaction;
 
 interface Profile {
   firstName: string;
@@ -163,7 +166,7 @@ export function generateTaxSummaryPDF(
 
 export function exportTaxDataJSON(
   profile: Profile,
-  taxReturn: any,
+  taxReturn: TaxReturn,
   taxResult: TaxResult
 ): void {
   const exportData = {
@@ -180,16 +183,19 @@ export function exportTaxDataJSON(
       // SIN intentionally excluded
     },
     income: {
-      slips: taxReturn.slips.map((slip: any) => ({
-        type: slip.type,
-        ...(slip.type === 'T4' ? {
-          employerName: slip.employerName,
-          employmentIncome: slip.boxes[14],
-          cppContributions: slip.boxes[16],
-          eiPremiums: slip.boxes[18],
-          taxDeducted: slip.boxes[22]
-        } : {})
-      })),
+      slips: taxReturn.slips.map((slip: Slip) => {
+        if (slip.type === 'T4') {
+          return {
+            type: slip.type,
+            employerName: slip.employerName,
+            employmentIncome: slip.boxes[14],
+            cppContributions: slip.boxes[16],
+            eiPremiums: slip.boxes[18],
+            taxDeducted: slip.boxes[22]
+          };
+        }
+        return { type: slip.type };
+      }),
       other: taxReturn.otherIncome
     },
     deductions: taxReturn.deductions,

@@ -1,15 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTaxReturn } from '../../context/TaxReturnContext';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { MoneyInput } from '../../components/ui/Input';
 import { Alert } from '../../components/ui/Alert';
+import { RRSPForm } from '../../components/tax/RRSPForm';
 
 export function DeductionsPage() {
   const navigate = useNavigate();
   const { taxYear } = useParams();
   const { state, dispatch } = useTaxReturn();
+  const [showRRSPForm, setShowRRSPForm] = useState(false);
+  const [rrspLimit, setRRSPLimit] = useState(31560); // Default 2024 limit
 
   const handleDeductionChange = (field: string, value: number) => {
     dispatch({ type: 'UPDATE_DEDUCTIONS', payload: { [field]: value } });
@@ -37,12 +40,22 @@ export function DeductionsPage() {
           Deductions reduce your taxable income
         </p>
 
-        <MoneyInput
-          label="RRSP Contributions"
-          value={state.currentReturn.deductions.rrsp}
-          onChange={(value) => handleDeductionChange('rrsp', value)}
-          hint="Contributions made in 2024 or first 60 days of 2025. Limit: $31,560"
-        />
+        <div style={{ marginBottom: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <label style={{ fontSize: '14px', fontWeight: 500, color: '#374151' }}>
+              RRSP Deduction
+            </label>
+            <Button size="sm" variant="secondary" onClick={() => setShowRRSPForm(true)}>
+              Optimize RRSP
+            </Button>
+          </div>
+          <MoneyInput
+            label=""
+            value={state.currentReturn.deductions.rrsp}
+            onChange={(value) => handleDeductionChange('rrsp', value)}
+            hint="Contributions made in 2024 or first 60 days of 2025. Limit: $31,560"
+          />
+        </div>
 
         <MoneyInput
           label="FHSA Contributions"
@@ -83,10 +96,17 @@ export function DeductionsPage() {
         </p>
 
         <MoneyInput
-          label="Charitable Donations"
+          label="Charitable Donations (This Year)"
           value={state.currentReturn.credits.donations}
           onChange={(value) => handleCreditChange('donations', value)}
           hint="Receipts from registered charities. 15% credit on first $200, 29% on rest"
+        />
+
+        <MoneyInput
+          label="Donation Carry-Forward (From Prior Years)"
+          value={state.currentReturn.credits.donationCarryForward || 0}
+          onChange={(value) => handleCreditChange('donationCarryForward', value)}
+          hint="Unclaimed donations from the past 5 years. Check prior returns or CRA My Account"
         />
 
         <MoneyInput
@@ -95,6 +115,43 @@ export function DeductionsPage() {
           onChange={(value) => handleCreditChange('medical', value)}
           hint="Unreimbursed medical expenses for you, spouse, and dependents"
         />
+
+        {/* Medical Travel Expenses */}
+        <div style={{
+          padding: '16px',
+          backgroundColor: '#F9FAFB',
+          borderRadius: '8px',
+          marginBottom: '20px',
+          border: '1px solid #E5E7EB'
+        }}>
+          <h4 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px', color: '#374151' }}>
+            Medical Travel Expenses
+          </h4>
+          <p style={{ fontSize: '13px', color: '#6B7280', marginBottom: '16px' }}>
+            If you traveled more than 40km one way for medical treatment not available locally
+          </p>
+
+          <MoneyInput
+            label="Vehicle Expenses"
+            value={state.currentReturn.credits.medicalTravel || 0}
+            onChange={(value) => handleCreditChange('medicalTravel', value)}
+            hint="Mileage at $0.70/km (first 5,000km) or $0.64/km after"
+          />
+
+          <MoneyInput
+            label="Accommodation (if 80km+ away)"
+            value={state.currentReturn.credits.medicalAccommodation || 0}
+            onChange={(value) => handleCreditChange('medicalAccommodation', value)}
+            hint="Up to $50/night for patient + 1 attendant if needed"
+          />
+
+          <MoneyInput
+            label="Meals (if 80km+ away)"
+            value={state.currentReturn.credits.medicalMeals || 0}
+            onChange={(value) => handleCreditChange('medicalMeals', value)}
+            hint="Simplified method: $23/meal (max $69/day)"
+          />
+        </div>
 
         <MoneyInput
           label="Tuition Fees"
@@ -117,6 +174,21 @@ export function DeductionsPage() {
           Continue to Review
         </Button>
       </div>
+
+      {/* RRSP Form Modal */}
+      {showRRSPForm && (
+        <RRSPForm
+          contributionLimit={rrspLimit}
+          totalContributions={state.currentReturn.deductions.rrsp}
+          deductionAmount={state.currentReturn.deductions.rrsp}
+          onSave={(data) => {
+            setRRSPLimit(data.contributionLimit);
+            handleDeductionChange('rrsp', data.deductionAmount);
+            setShowRRSPForm(false);
+          }}
+          onCancel={() => setShowRRSPForm(false)}
+        />
+      )}
     </div>
   );
 }

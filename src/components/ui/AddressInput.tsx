@@ -65,7 +65,7 @@ export function AddressInput({ value, onChange, label, required }: AddressInputP
       const data = await response.json();
 
       if (data.Items && data.Items.length > 0) {
-        setSuggestions(data.Items.filter((item: any) => item.Type !== 'Warning'));
+        setSuggestions(data.Items.filter((item: AddressSuggestion) => item.Type !== 'Warning'));
       } else {
         setSuggestions([]);
       }

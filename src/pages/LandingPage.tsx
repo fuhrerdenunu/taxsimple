@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { Header } from '../components/layout/Header';
 import { Footer } from '../components/layout/Footer';
 import { Button } from '../components/ui/Button';
+import { CURRENT_TAX_YEAR } from '../domain/tax';
 
 export function LandingPage() {
   const navigate = useNavigate();
@@ -47,7 +48,7 @@ export function LandingPage() {
           </p>
           <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
             <Button size="xl" onClick={handleGetStarted}>
-              Start your 2024 return
+              Start your {CURRENT_TAX_YEAR} return
             </Button>
             <Button size="xl" variant="secondary" onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}>
               How it works

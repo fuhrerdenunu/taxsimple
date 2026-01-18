@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTaxReturn, Profile } from '../../context/TaxReturnContext';
-import { PROVINCES } from '../../domain/tax';
+import { PROVINCES, CURRENT_TAX_YEAR, type ProvinceCode } from '../../domain/tax';
 import { Button } from '../../components/ui/Button';
 import { Input, Select, MoneyInput } from '../../components/ui/Input';
 import { AddressInput } from '../../components/ui/AddressInput';
@@ -153,41 +153,10 @@ function InfoRow({
   );
 }
 
-// Inline select matching Wealthsimple
-function InlineSelect({
-  value,
-  onChange,
-  options
-}: {
-  value: string;
-  onChange: (val: string) => void;
-  options: { value: string; label: string }[];
-}) {
-  return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      style={{
-        padding: '8px 12px',
-        fontSize: '14px',
-        border: '1px solid #E5E7EB',
-        borderRadius: '6px',
-        backgroundColor: 'white',
-        cursor: 'pointer',
-        minWidth: '80px'
-      }}
-    >
-      {options.map(opt => (
-        <option key={opt.value} value={opt.value}>{opt.label}</option>
-      ))}
-    </select>
-  );
-}
-
 export function ProfilePage() {
   const navigate = useNavigate();
   const { taxYear } = useParams();
-  const year = parseInt(taxYear || '2024', 10);
+  const year = taxYear ? parseInt(taxYear, 10) : CURRENT_TAX_YEAR;
   const { state, dispatch } = useTaxReturn();
   const { profile } = state;
 
@@ -243,11 +212,11 @@ export function ProfilePage() {
     landlordName: ''
   });
 
-  const handleChange = (field: keyof Profile, value: any) => {
-    dispatch({ type: 'UPDATE_PROFILE', payload: { [field]: value } });
+  const handleChange = (field: keyof Profile, value: unknown) => {
+    dispatch({ type: 'UPDATE_PROFILE', payload: { [field]: value } as Partial<Profile> });
   };
 
-  const handleExt = (field: string, value: any) => {
+  const handleExt = (field: keyof typeof ext, value: string | number | boolean) => {
     setExt(prev => ({ ...prev, [field]: value }));
   };
 
@@ -259,7 +228,6 @@ export function ProfilePage() {
   };
 
   const provinceOptions = PROVINCES.map(p => ({ value: p.code, label: p.name }));
-  const yesNoOptions = [{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }];
   const languageOptions = [{ value: 'english', label: 'English' }, { value: 'french', label: 'Français' }];
 
   const showSpouseSection = profile.maritalStatus === 'married' || profile.maritalStatus === 'common-law';
@@ -312,7 +280,7 @@ export function ProfilePage() {
             />
           </div>
           <div>
-            <label style={{ display: '12px', fontSize: '12px', color: '#6B7280', marginBottom: '6px' }}>
+            <label style={{ display: 'block', fontSize: '12px', color: '#6B7280', marginBottom: '6px' }}>
               Last name<span style={{ color: '#DC2626' }}>*</span>
             </label>
             <input
@@ -410,7 +378,7 @@ export function ProfilePage() {
             </label>
             <select
               value={profile.province}
-              onChange={(e) => handleChange('province', e.target.value)}
+              onChange={(e) => handleChange('province', e.target.value as ProvinceCode)}
               style={{
                 width: '100%',
                 padding: '10px 12px',
@@ -474,7 +442,15 @@ export function ProfilePage() {
             </p>
             <button
               type="button"
-              onClick={() => window.open('https://www.canada.ca/en/revenue-agency/services/e-services/e-services-individuals/account-individuals.html', '_blank')}
+              onClick={() => {
+                const url = 'https://www.canada.ca/en/revenue-agency/services/e-services/e-services-individuals/account-individuals.html';
+                const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
+                if (!newWindow || newWindow.closed) {
+                  // Popup was blocked, redirect in same tab
+                  window.location.href = url;
+                }
+              }}
+              aria-label="Connect to CRA My Account to import tax slips"
               style={{
                 padding: '10px 20px',
                 border: '1px solid #D1D5DB',
@@ -578,7 +554,7 @@ export function ProfilePage() {
             onChange={(address) => {
               handleChange('address', address.street);
               handleChange('city', address.city);
-              handleChange('province', address.province);
+              handleChange('province', address.province as ProvinceCode);
               handleChange('postalCode', address.postalCode);
             }}
           />
@@ -597,10 +573,9 @@ export function ProfilePage() {
           </div>
 
           <InfoRow label="Do you have a non-Canadian mailing address?" hint="Select Yes if your mailing address is outside Canada">
-            <InlineSelect
-              value={ext.hasNonCanadianMailingAddress ? 'yes' : 'no'}
-              onChange={(v) => handleExt('hasNonCanadianMailingAddress', v === 'yes')}
-              options={yesNoOptions}
+            <ToggleSwitchCompact
+              value={ext.hasNonCanadianMailingAddress}
+              onChange={(v) => handleExt('hasNonCanadianMailingAddress', v)}
             />
           </InfoRow>
         </div>
@@ -615,10 +590,9 @@ export function ProfilePage() {
           <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '16px' }}>About Your Residency</h3>
 
           <InfoRow label={`Were you a Canadian resident for all of ${year}?`} hint="You are a resident if Canada was your home" required>
-            <InlineSelect
-              value={ext.wasResidentAllYear ? 'yes' : 'no'}
-              onChange={(v) => handleExt('wasResidentAllYear', v === 'yes')}
-              options={yesNoOptions}
+            <ToggleSwitchCompact
+              value={ext.wasResidentAllYear}
+              onChange={(v) => handleExt('wasResidentAllYear', v)}
             />
           </InfoRow>
         </div>
@@ -638,7 +612,7 @@ export function ProfilePage() {
             </label>
             <select
               value={profile.province}
-              onChange={(e) => handleChange('province', e.target.value)}
+              onChange={(e) => handleChange('province', e.target.value as ProvinceCode)}
               disabled
               style={{ padding: '10px 14px', fontSize: '14px', border: '1px solid #E5E7EB', borderRadius: '6px', backgroundColor: '#F3F4F6', color: '#6B7280' }}
             >
@@ -660,10 +634,9 @@ export function ProfilePage() {
           </div>
 
           <InfoRow label="Is your home address the same as your mailing address?">
-            <InlineSelect
-              value={ext.homeAddressSameAsMailing ? 'yes' : 'no'}
-              onChange={(v) => handleExt('homeAddressSameAsMailing', v === 'yes')}
-              options={yesNoOptions}
+            <ToggleSwitchCompact
+              value={ext.homeAddressSameAsMailing}
+              onChange={(v) => handleExt('homeAddressSameAsMailing', v)}
             />
           </InfoRow>
 
@@ -711,10 +684,9 @@ export function ProfilePage() {
           {showSpouseSection && (
             <>
               <InfoRow label="Do you want to prepare your returns together?" hint="Filing together can optimize credits">
-                <InlineSelect
-                  value={ext.filingForSpouse ? 'yes' : 'no'}
-                  onChange={(v) => handleExt('filingForSpouse', v === 'yes')}
-                  options={yesNoOptions}
+                <ToggleSwitchCompact
+                  value={ext.filingForSpouse}
+                  onChange={(v) => handleExt('filingForSpouse', v)}
                 />
               </InfoRow>
 
@@ -734,18 +706,16 @@ export function ProfilePage() {
           )}
 
           <InfoRow label={`Did your marital status change in ${year}?`} required>
-            <InlineSelect
-              value={ext.maritalStatusChanged ? 'yes' : 'no'}
-              onChange={(v) => handleExt('maritalStatusChanged', v === 'yes')}
-              options={yesNoOptions}
+            <ToggleSwitchCompact
+              value={ext.maritalStatusChanged}
+              onChange={(v) => handleExt('maritalStatusChanged', v)}
             />
           </InfoRow>
 
           <InfoRow label="Do you have any dependants?" hint="Children, elderly parents, or disabled relatives you support">
-            <InlineSelect
-              value={ext.hasDependants ? 'yes' : 'no'}
-              onChange={(v) => handleExt('hasDependants', v === 'yes')}
-              options={yesNoOptions}
+            <ToggleSwitchCompact
+              value={ext.hasDependants}
+              onChange={(v) => handleExt('hasDependants', v)}
             />
           </InfoRow>
         </div>
@@ -761,10 +731,9 @@ export function ProfilePage() {
           <p style={{ fontSize: '14px', color: '#6B7280', marginBottom: '16px', fontWeight: 500 }}>General questions</p>
 
           <InfoRow label="Are you filing an income tax return with the CRA for the first time?" hint="First time filing in Canada">
-            <InlineSelect
-              value={ext.firstTimeFiling ? 'yes' : 'no'}
-              onChange={(v) => handleExt('firstTimeFiling', v === 'yes')}
-              options={yesNoOptions}
+            <ToggleSwitchCompact
+              value={ext.firstTimeFiling}
+              onChange={(v) => handleExt('firstTimeFiling', v)}
             />
           </InfoRow>
 
@@ -785,10 +754,9 @@ export function ProfilePage() {
           )}
 
           <InfoRow label="Are you a person registered under the Indian Act?" hint="This affects tax exemptions on reserve income">
-            <InlineSelect
-              value={ext.isRegisteredIndianAct ? 'yes' : 'no'}
-              onChange={(v) => handleExt('isRegisteredIndianAct', v === 'yes')}
-              options={yesNoOptions}
+            <ToggleSwitchCompact
+              value={ext.isRegisteredIndianAct}
+              onChange={(v) => handleExt('isRegisteredIndianAct', v)}
             />
           </InfoRow>
 
@@ -819,20 +787,18 @@ export function ProfilePage() {
             label={`Did you open your first First Home Savings Account (FHSA) in ${year}, or become a successor holder in ${year} and did not open another FHSA of your own in ${year - 1} or ${year}?`}
             hint="FHSA helps first-time home buyers save"
           >
-            <InlineSelect
-              value={ext.openedFirstFHSA ? 'yes' : 'no'}
-              onChange={(v) => handleExt('openedFirstFHSA', v === 'yes')}
-              options={yesNoOptions}
+            <ToggleSwitchCompact
+              value={ext.openedFirstFHSA}
+              onChange={(v) => handleExt('openedFirstFHSA', v)}
             />
           </InfoRow>
 
           <h4 style={{ fontSize: '14px', fontWeight: 500, color: '#374151', margin: '20px 0 12px' }}>We have to ask because it affects some calculations</h4>
 
           <InfoRow label={`Were you confined to a prison for a period of 90 days or more in ${year}?`} hint="Affects eligibility for certain credits">
-            <InlineSelect
-              value={ext.wasInPrison ? 'yes' : 'no'}
-              onChange={(v) => handleExt('wasInPrison', v === 'yes')}
-              options={yesNoOptions}
+            <ToggleSwitchCompact
+              value={ext.wasInPrison}
+              onChange={(v) => handleExt('wasInPrison', v)}
             />
           </InfoRow>
         </div>
@@ -851,10 +817,9 @@ export function ProfilePage() {
             hint="Rural residents get a 20% supplement"
             required
           >
-            <InlineSelect
-              value={ext.livesOutsideCMA ? 'yes' : 'no'}
-              onChange={(v) => handleExt('livesOutsideCMA', v === 'yes')}
-              options={yesNoOptions}
+            <ToggleSwitchCompact
+              value={ext.livesOutsideCMA}
+              onChange={(v) => handleExt('livesOutsideCMA', v)}
             />
           </InfoRow>
         </div>
@@ -876,10 +841,9 @@ export function ProfilePage() {
             </p>
 
             <InfoRow label="Do you consent to share your contact information?" required>
-              <InlineSelect
-                value={ext.organDonation ? 'yes' : 'no'}
-                onChange={(v) => handleExt('organDonation', v === 'yes')}
-                options={yesNoOptions}
+              <ToggleSwitchCompact
+                value={ext.organDonation}
+                onChange={(v) => handleExt('organDonation', v)}
               />
             </InfoRow>
           </div>
@@ -896,10 +860,9 @@ export function ProfilePage() {
             <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '16px' }}>Ontario Trillium Benefit</h3>
 
             <InfoRow label={`Will you${ext.filingForSpouse ? ` or ${profile.spouse?.firstName || 'your partner'}` : ''} apply for the Ontario Trillium Benefit?`} hint="Combines several Ontario credits">
-              <InlineSelect
-                value={ext.applyTrillium ? 'yes' : 'no'}
-                onChange={(v) => handleExt('applyTrillium', v === 'yes')}
-                options={yesNoOptions}
+              <ToggleSwitchCompact
+                value={ext.applyTrillium}
+                onChange={(v) => handleExt('applyTrillium', v)}
               />
             </InfoRow>
           </div>
@@ -939,10 +902,9 @@ export function ProfilePage() {
             <h4 style={{ fontSize: '14px', fontWeight: 500, color: 'white', marginBottom: '16px' }}>Tax situations</h4>
 
             <InfoRow label={`Does ${profile.spouse?.firstName || 'your partner'} have an infirmity or disability?`}>
-              <InlineSelect
-                value={ext.spouseHasDisability ? 'yes' : 'no'}
-                onChange={(v) => handleExt('spouseHasDisability', v === 'yes')}
-                options={yesNoOptions}
+              <ToggleSwitchCompact
+                value={ext.spouseHasDisability}
+                onChange={(v) => handleExt('spouseHasDisability', v)}
               />
             </InfoRow>
 
@@ -959,42 +921,37 @@ export function ProfilePage() {
             </div>
 
             <InfoRow label={`Did you live together for all of ${year}?`}>
-              <InlineSelect
-                value={ext.livedTogetherAllYear ? 'yes' : 'no'}
-                onChange={(v) => handleExt('livedTogetherAllYear', v === 'yes')}
-                options={yesNoOptions}
+              <ToggleSwitchCompact
+                value={ext.livedTogetherAllYear}
+                onChange={(v) => handleExt('livedTogetherAllYear', v)}
               />
             </InfoRow>
 
             <InfoRow label={`Did you live together on December 31, ${year}?`}>
-              <InlineSelect
-                value={ext.livedTogetherDec31 ? 'yes' : 'no'}
-                onChange={(v) => handleExt('livedTogetherDec31', v === 'yes')}
-                options={yesNoOptions}
+              <ToggleSwitchCompact
+                value={ext.livedTogetherDec31}
+                onChange={(v) => handleExt('livedTogetherDec31', v)}
               />
             </InfoRow>
 
             <InfoRow label={`While living apart did you support (or were you being supported by) ${profile.spouse?.firstName || 'your partner'}?`}>
-              <InlineSelect
-                value={ext.supportedWhileApart ? 'yes' : 'no'}
-                onChange={(v) => handleExt('supportedWhileApart', v === 'yes')}
-                options={yesNoOptions}
+              <ToggleSwitchCompact
+                value={ext.supportedWhileApart}
+                onChange={(v) => handleExt('supportedWhileApart', v)}
               />
             </InfoRow>
 
             <InfoRow label={`Was ${profile.spouse?.firstName || 'your partner'} a non-resident on December 31, ${year}?`}>
-              <InlineSelect
-                value={ext.spouseWasNonResident ? 'yes' : 'no'}
-                onChange={(v) => handleExt('spouseWasNonResident', v === 'yes')}
-                options={yesNoOptions}
+              <ToggleSwitchCompact
+                value={ext.spouseWasNonResident}
+                onChange={(v) => handleExt('spouseWasNonResident', v)}
               />
             </InfoRow>
 
             <InfoRow label="Did you live in separate principal residences for medical reasons?">
-              <InlineSelect
-                value={ext.liveSeparateForMedical ? 'yes' : 'no'}
-                onChange={(v) => handleExt('liveSeparateForMedical', v === 'yes')}
-                options={yesNoOptions}
+              <ToggleSwitchCompact
+                value={ext.liveSeparateForMedical}
+                onChange={(v) => handleExt('liveSeparateForMedical', v)}
               />
             </InfoRow>
 
@@ -1053,18 +1010,16 @@ export function ProfilePage() {
           <p style={{ fontSize: '14px', fontWeight: 500, color: 'white', marginBottom: '12px' }}>Apply for the:</p>
 
           <InfoRow label="Ontario energy and property tax credit">
-            <InlineSelect
-              value={ext.applyEnergyPropertyCredit ? 'yes' : 'no'}
-              onChange={(v) => handleExt('applyEnergyPropertyCredit', v === 'yes')}
-              options={yesNoOptions}
+            <ToggleSwitchCompact
+              value={ext.applyEnergyPropertyCredit}
+              onChange={(v) => handleExt('applyEnergyPropertyCredit', v)}
             />
           </InfoRow>
 
           <InfoRow label="Northern Ontario energy credit" hint="Only if you lived in Northern Ontario">
-            <InlineSelect
-              value={ext.applyNorthernCredit ? 'yes' : 'no'}
-              onChange={(v) => handleExt('applyNorthernCredit', v === 'yes')}
-              options={yesNoOptions}
+            <ToggleSwitchCompact
+              value={ext.applyNorthernCredit}
+              onChange={(v) => handleExt('applyNorthernCredit', v)}
             />
           </InfoRow>
 
@@ -1132,18 +1087,16 @@ export function ProfilePage() {
           </div>
 
           <InfoRow label="Did you reside in a student residence?">
-            <InlineSelect
-              value={ext.isStudentResidence ? 'yes' : 'no'}
-              onChange={(v) => handleExt('isStudentResidence', v === 'yes')}
-              options={yesNoOptions}
+            <ToggleSwitchCompact
+              value={ext.isStudentResidence}
+              onChange={(v) => handleExt('isStudentResidence', v)}
             />
           </InfoRow>
 
           <InfoRow label={`Would you like to receive your benefit in June ${year + 2} instead of receiving it monthly starting in July ${year + 1}?`}>
-            <InlineSelect
-              value={ext.receiveTrilliumJune ? 'yes' : 'no'}
-              onChange={(v) => handleExt('receiveTrilliumJune', v === 'yes')}
-              options={yesNoOptions}
+            <ToggleSwitchCompact
+              value={ext.receiveTrilliumJune}
+              onChange={(v) => handleExt('receiveTrilliumJune', v)}
             />
           </InfoRow>
 

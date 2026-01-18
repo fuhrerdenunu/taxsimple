@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTaxReturn } from '../context/TaxReturnContext';
-import { calculateTax, formatCurrency } from '../domain/tax';
+import { calculateTax, formatCurrency, CURRENT_TAX_YEAR } from '../domain/tax';
 import { Header } from '../components/layout/Header';
 import { Footer } from '../components/layout/Footer';
 import { Button } from '../components/ui/Button';
@@ -20,7 +20,7 @@ export function DashboardPage() {
   const { user } = useAuth();
   const { state, dispatch, getTaxInput } = useTaxReturn();
 
-  const taxYears = [2024, 2023, 2022, 2021];
+  const taxYears = [CURRENT_TAX_YEAR, CURRENT_TAX_YEAR - 1, CURRENT_TAX_YEAR - 2, CURRENT_TAX_YEAR - 3];
 
   const handleStartReturn = (year: number) => {
     if (state.currentReturn.year !== year) {
@@ -175,11 +175,11 @@ export function DashboardPage() {
                       width: '48px',
                       height: '48px',
                       borderRadius: '12px',
-                      backgroundColor: year === 2024 ? '#E8F5E9' : '#F3F4F6',
+                      backgroundColor: year === CURRENT_TAX_YEAR ? '#E8F5E9' : '#F3F4F6',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      color: year === 2024 ? '#0D5F2B' : '#6B7280'
+                      color: year === CURRENT_TAX_YEAR ? '#0D5F2B' : '#6B7280'
                     }}>
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />

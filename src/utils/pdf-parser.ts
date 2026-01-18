@@ -3,6 +3,12 @@ import * as pdfjsLib from 'pdfjs-dist';
 // Set up the worker for pdfjs-dist v3.x
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
 
+// PDF.js text content item interface
+interface TextItem {
+  str: string;
+  transform?: number[];
+}
+
 // Supported slip types
 export type SlipType =
   | 'T4'      // Employment income
@@ -303,7 +309,7 @@ export const extractTextFromPDF = async (file: File): Promise<string> => {
       const page = await pdf.getPage(i);
       const textContent = await page.getTextContent();
       const pageText = textContent.items
-        .map((item: any) => item.str)
+        .map((item) => (item as TextItem).str)
         .join(' ');
       fullText += pageText + '\n';
     }

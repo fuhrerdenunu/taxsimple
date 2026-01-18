@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import CryptoJS from 'crypto-js';
-import type { ProvinceCode } from '../domain/tax';
+import { CURRENT_TAX_YEAR, type ProvinceCode } from '../domain/tax';
 
 // Types
 export interface T4Slip {
@@ -50,7 +50,19 @@ export interface T2125Data {
   netIncome: number;
 }
 
-export type IncomeSlip = T4Slip | T4ASlip | T5Slip | T2125Data;
+export interface CapitalGainsTransaction {
+  id: string;
+  type: 'CapitalGains';
+  description: string;
+  dateAcquired: string;
+  dateSold: string;
+  proceeds: number;
+  adjustedCostBase: number;
+  outlayAndExpenses: number;
+  gain: number; // Calculated: proceeds - ACB - expenses
+}
+
+export type IncomeSlip = T4Slip | T4ASlip | T5Slip | T2125Data | CapitalGainsTransaction;
 
 export interface SpouseProfile {
   firstName: string;
@@ -113,7 +125,11 @@ export interface TaxReturn {
   };
   credits: {
     donations: number;
+    donationCarryForward: number;
     medical: number;
+    medicalTravel: number;
+    medicalAccommodation: number;
+    medicalMeals: number;
     tuition: number;
   };
 }
@@ -178,14 +194,18 @@ const createNewReturn = (year: number): TaxReturn => ({
   },
   credits: {
     donations: 0,
+    donationCarryForward: 0,
     medical: 0,
+    medicalTravel: 0,
+    medicalAccommodation: 0,
+    medicalMeals: 0,
     tuition: 0
   }
 });
 
 const initialState: TaxReturnState = {
   profile: initialProfile,
-  currentReturn: createNewReturn(2024),
+  currentReturn: createNewReturn(CURRENT_TAX_YEAR),
   savedReturns: []
 };
 

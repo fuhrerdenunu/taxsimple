@@ -69,16 +69,20 @@ export function Alert({ type, title, children, onClose, style: customStyle }: Al
   };
 
   return (
-    <div style={{
-      backgroundColor: style.bg,
-      border: `1px solid ${style.border}`,
-      borderRadius: '8px',
-      padding: '16px',
-      display: 'flex',
-      gap: '12px',
-      alignItems: 'flex-start',
-      ...customStyle
-    }}>
+    <div
+      role="alert"
+      aria-live="polite"
+      style={{
+        backgroundColor: style.bg,
+        border: `1px solid ${style.border}`,
+        borderRadius: '8px',
+        padding: '16px',
+        display: 'flex',
+        gap: '12px',
+        alignItems: 'flex-start',
+        ...customStyle
+      }}
+    >
       <div style={{ color: style.icon, flexShrink: 0 }}>
         {icons[type]}
       </div>
@@ -104,6 +108,8 @@ export function Alert({ type, title, children, onClose, style: customStyle }: Al
       {onClose && (
         <button
           onClick={onClose}
+          aria-label="Close alert"
+          type="button"
           style={{
             background: 'none',
             border: 'none',
@@ -113,7 +119,7 @@ export function Alert({ type, title, children, onClose, style: customStyle }: Al
             display: 'flex'
           }}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
             <line x1="18" y1="6" x2="6" y2="18" />
             <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
