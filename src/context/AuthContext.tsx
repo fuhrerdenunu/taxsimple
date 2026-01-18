@@ -26,9 +26,9 @@ const RATE_LIMIT_KEY = 'taxsimple_rate_limit';
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes in milliseconds
 
-// Derive encryption key from a base key (in production, use user's password)
+// Encryption key from environment or fallback for development
 const getEncryptionKey = () => {
-  return 'taxsimple_2024_secure_key';
+  return process.env.REACT_APP_ENCRYPTION_KEY || 'dev_only_not_for_production';
 };
 
 const encrypt = (data: string): string => {
@@ -40,8 +40,24 @@ const decrypt = (ciphertext: string): string => {
   return bytes.toString(CryptoJS.enc.Utf8);
 };
 
-const hashPassword = (password: string): string => {
-  return CryptoJS.SHA256(password).toString();
+// Hash password using PBKDF2 with salt for better security
+const hashPassword = (password: string, salt?: string): string => {
+  const useSalt = salt || CryptoJS.lib.WordArray.random(128 / 8).toString();
+  const hash = CryptoJS.PBKDF2(password, useSalt, {
+    keySize: 256 / 32,
+    iterations: 10000
+  }).toString();
+  return `${useSalt}:${hash}`;
+};
+
+const verifyPassword = (password: string, storedHash: string): boolean => {
+  const [salt, hash] = storedHash.split(':');
+  if (!salt || !hash) return false;
+  const testHash = CryptoJS.PBKDF2(password, salt, {
+    keySize: 256 / 32,
+    iterations: 10000
+  }).toString();
+  return hash === testHash;
 };
 
 interface RateLimitData {
@@ -82,8 +98,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const userData = JSON.parse(decrypted);
         setUser(userData);
       }
-    } catch (error) {
-      console.error('Failed to load auth state:', error);
+    } catch {
+      // Auth state corrupted or key changed - clear and start fresh
       localStorage.removeItem(STORAGE_KEY);
     } finally {
       setIsLoading(false);
@@ -147,8 +163,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: false, error: 'Invalid email or password' };
       }
 
-      const passwordHash = hashPassword(password);
-      if (userRecord.passwordHash !== passwordHash) {
+      if (!verifyPassword(password, userRecord.passwordHash)) {
         // Increment failed attempts
         const newAttempts = rateLimitData.attempts + 1;
         if (newAttempts >= MAX_ATTEMPTS) {

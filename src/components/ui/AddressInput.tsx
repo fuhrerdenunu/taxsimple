@@ -37,9 +37,8 @@ interface AddressInputProps {
   required?: boolean;
 }
 
-// Canada Post AddressComplete API key (free tier allows 100 lookups/day)
-// In production, this should be in environment variables
-const CANADA_POST_API_KEY = 'JK94-ZN56-KE36-UM44'; // Demo key - replace with your own
+// Canada Post AddressComplete API key from environment variables
+const CANADA_POST_API_KEY = process.env.REACT_APP_CANADA_POST_API_KEY || '';
 
 export function AddressInput({ value, onChange, label, required }: AddressInputProps) {
   const [searchText, setSearchText] = useState(value.street || '');
@@ -47,6 +46,7 @@ export function AddressInput({ value, onChange, label, required }: AddressInputP
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
@@ -57,11 +57,21 @@ export function AddressInput({ value, onChange, label, required }: AddressInputP
       return;
     }
 
+    if (!CANADA_POST_API_KEY) {
+      // Silently fall back to manual entry if no API key configured
+      setSuggestions([]);
+      return;
+    }
+
     setIsLoading(true);
+    setError(null);
     try {
       const url = `https://ws1.postescanada-canadapost.ca/AddressComplete/Interactive/Find/v2.10/json3.ws?Key=${CANADA_POST_API_KEY}&SearchTerm=${encodeURIComponent(text)}&Country=CAN&LanguagePreference=en${lastId ? `&LastId=${lastId}` : ''}`;
 
       const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Address lookup failed: ${response.status}`);
+      }
       const data = await response.json();
 
       if (data.Items && data.Items.length > 0) {
@@ -69,8 +79,8 @@ export function AddressInput({ value, onChange, label, required }: AddressInputP
       } else {
         setSuggestions([]);
       }
-    } catch (error) {
-      console.error('Address lookup error:', error);
+    } catch {
+      setError('Address lookup unavailable. Please enter manually.');
       setSuggestions([]);
     } finally {
       setIsLoading(false);
@@ -78,19 +88,24 @@ export function AddressInput({ value, onChange, label, required }: AddressInputP
   };
 
   // Fetch full address details when user selects an address
-  const fetchAddressDetails = async (id: string) => {
+  const fetchAddressDetails = async (id: string): Promise<AddressDetails | null> => {
+    if (!CANADA_POST_API_KEY) return null;
+
     try {
       const url = `https://ws1.postescanada-canadapost.ca/AddressComplete/Interactive/Retrieve/v2.10/json3.ws?Key=${CANADA_POST_API_KEY}&Id=${encodeURIComponent(id)}`;
 
       const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Address details failed: ${response.status}`);
+      }
       const data = await response.json();
 
       if (data.Items && data.Items.length > 0) {
         const address = data.Items[0] as AddressDetails;
         return address;
       }
-    } catch (error) {
-      console.error('Address details error:', error);
+    } catch {
+      setError('Could not retrieve address details.');
     }
     return null;
   };
@@ -347,27 +362,14 @@ export function ManualAddressInput({
 }) {
   return (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: '80px 100px 1fr', gap: '12px', marginBottom: '12px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '12px', marginBottom: '12px' }}>
         <div>
           <label style={{ display: 'block', fontSize: '12px', color: '#6B7280', marginBottom: '6px' }}>Unit</label>
           <input
             type="text"
             value={value.unit || ''}
             onChange={(e) => onChange({ ...value, unit: e.target.value })}
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              fontSize: '14px',
-              border: '1px solid #E5E7EB',
-              borderRadius: '6px',
-              boxSizing: 'border-box'
-            }}
-          />
-        </div>
-        <div>
-          <label style={{ display: 'block', fontSize: '12px', color: '#6B7280', marginBottom: '6px' }}>Street #</label>
-          <input
-            type="text"
+            placeholder="Apt #"
             style={{
               width: '100%',
               padding: '8px 12px',
@@ -380,7 +382,7 @@ export function ManualAddressInput({
         </div>
         <div>
           <label style={{ display: 'block', fontSize: '12px', color: '#6B7280', marginBottom: '6px' }}>
-            Street name<span style={{ color: '#DC2626' }}>*</span>
+            Street address<span style={{ color: '#DC2626' }}>*</span>
           </label>
           <input
             type="text"

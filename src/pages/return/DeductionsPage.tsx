@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTaxReturn } from '../../context/TaxReturnContext';
 import { Button } from '../../components/ui/Button';
@@ -7,12 +7,29 @@ import { MoneyInput } from '../../components/ui/Input';
 import { Alert } from '../../components/ui/Alert';
 import { RRSPForm } from '../../components/tax/RRSPForm';
 
+// RRSP contribution limits by tax year (from CRA)
+const RRSP_LIMITS: Record<number, number> = {
+  2024: 31560,
+  2023: 30780,
+  2022: 29210,
+  2021: 27830,
+  2020: 27230,
+};
+
 export function DeductionsPage() {
   const navigate = useNavigate();
   const { taxYear } = useParams();
   const { state, dispatch } = useTaxReturn();
   const [showRRSPForm, setShowRRSPForm] = useState(false);
-  const [rrspLimit, setRRSPLimit] = useState(31560); // Default 2024 limit
+
+  const year = taxYear ? parseInt(taxYear, 10) : 2024;
+  const defaultRRSPLimit = RRSP_LIMITS[year] || RRSP_LIMITS[2024];
+  const [rrspLimit, setRRSPLimit] = useState(defaultRRSPLimit);
+
+  // Update RRSP limit when year changes
+  useMemo(() => {
+    setRRSPLimit(RRSP_LIMITS[year] || RRSP_LIMITS[2024]);
+  }, [year]);
 
   const handleDeductionChange = (field: string, value: number) => {
     dispatch({ type: 'UPDATE_DEDUCTIONS', payload: { [field]: value } });
@@ -53,7 +70,7 @@ export function DeductionsPage() {
             label=""
             value={state.currentReturn.deductions.rrsp}
             onChange={(value) => handleDeductionChange('rrsp', value)}
-            hint="Contributions made in 2024 or first 60 days of 2025. Limit: $31,560"
+            hint={`Contributions made in ${year} or first 60 days of ${year + 1}. Limit: $${rrspLimit.toLocaleString()}`}
           />
         </div>
 

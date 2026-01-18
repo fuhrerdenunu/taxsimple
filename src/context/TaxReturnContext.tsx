@@ -13,7 +13,11 @@ export interface T4Slip {
     18?: number; // EI premiums
     20?: number; // RPP contributions
     22?: number; // Tax deducted
+    24?: number; // EI insurable earnings
+    26?: number; // CPP pensionable earnings
     44?: number; // Union dues
+    46?: number; // Charitable donations
+    52?: number; // Pension adjustment
   };
 }
 
@@ -26,7 +30,34 @@ export interface T4ASlip {
     18?: number; // Lump-sum payments
     20?: number; // Self-employed commissions
     22?: number; // Tax deducted
+    24?: number; // Annuities
     28?: number; // Other income
+    105?: number; // Scholarships/bursaries
+    135?: number; // Recipient-paid premiums
+  };
+}
+
+export interface T4ESlip {
+  id: string;
+  type: 'T4E';
+  payerName: string;
+  boxes: {
+    14?: number; // Total EI benefits
+    15?: number; // Regular benefits
+    17?: number; // Fishing benefits
+    22?: number; // Income tax deducted
+  };
+}
+
+export interface T4FHSASlip {
+  id: string;
+  type: 'T4FHSA';
+  payerName: string;
+  boxes: {
+    12?: number; // Contributions
+    22?: number; // Income tax deducted
+    24?: number; // Transfers in
+    26?: number; // Withdrawals
   };
 }
 
@@ -35,10 +66,59 @@ export interface T5Slip {
   type: 'T5';
   payerName: string;
   boxes: {
-    24?: number; // Actual dividends
-    25?: number; // Taxable dividends
-    13?: number; // Interest income
+    10?: number; // Actual amount of eligible dividends
+    11?: number; // Taxable amount of eligible dividends
+    13?: number; // Interest from Canadian sources
+    18?: number; // Capital gains dividends
+    24?: number; // Actual amount of dividends other than eligible
+    25?: number; // Taxable amount of dividends other than eligible
+    26?: number; // Dividend tax credit for other than eligible
   };
+}
+
+export interface T3Slip {
+  id: string;
+  type: 'T3';
+  payerName: string;
+  boxes: {
+    21?: number; // Capital gains
+    23?: number; // Eligible dividends
+    26?: number; // Other income
+    32?: number; // Income tax deducted
+    49?: number; // Interest from Canadian sources
+  };
+}
+
+export interface T5008Slip {
+  id: string;
+  type: 'T5008';
+  payerName: string;
+  boxes: {
+    13?: number; // Type of security
+    15?: number; // Number of shares
+    20?: number; // Proceeds
+    21?: number; // Book value/ACB
+  };
+}
+
+export interface RL1Slip {
+  id: string;
+  type: 'RL1';
+  employerName: string;
+  boxes: {
+    A?: number; // Employment income
+    B?: number; // QPP contributions
+    C?: number; // EI premiums
+    E?: number; // Quebec income tax
+    G?: number; // Pensionable salary
+  };
+}
+
+export interface UnknownSlip {
+  id: string;
+  type: 'unknown';
+  payerName: string;
+  boxes: Record<string | number, number>;
 }
 
 export interface T2125Data {
@@ -62,7 +142,7 @@ export interface CapitalGainsTransaction {
   gain: number; // Calculated: proceeds - ACB - expenses
 }
 
-export type IncomeSlip = T4Slip | T4ASlip | T5Slip | T2125Data | CapitalGainsTransaction;
+export type IncomeSlip = T4Slip | T4ASlip | T4ESlip | T4FHSASlip | T5Slip | T3Slip | T5008Slip | RL1Slip | UnknownSlip | T2125Data | CapitalGainsTransaction;
 
 export interface SpouseProfile {
   firstName: string;
@@ -286,14 +366,14 @@ function reducer(state: TaxReturnState, action: Action): TaxReturnState {
 
 // Storage helpers
 const STORAGE_KEY = 'taxsimple_returns';
-const ENCRYPTION_KEY = 'taxsimple_data_key';
+const getEncryptionKey = () => process.env.REACT_APP_ENCRYPTION_KEY || 'dev_only_not_for_production';
 
 const encrypt = (data: string): string => {
-  return CryptoJS.AES.encrypt(data, ENCRYPTION_KEY).toString();
+  return CryptoJS.AES.encrypt(data, getEncryptionKey()).toString();
 };
 
 const decrypt = (ciphertext: string): string => {
-  const bytes = CryptoJS.AES.decrypt(ciphertext, ENCRYPTION_KEY);
+  const bytes = CryptoJS.AES.decrypt(ciphertext, getEncryptionKey());
   return bytes.toString(CryptoJS.enc.Utf8);
 };
 
@@ -338,8 +418,8 @@ export function TaxReturnProvider({ children }: { children: React.ReactNode }) {
         const loadedState = JSON.parse(decrypted);
         dispatch({ type: 'LOAD_STATE', payload: loadedState });
       }
-    } catch (error) {
-      console.error('Failed to load tax return state:', error);
+    } catch {
+      // State corrupted or key changed - start fresh
     }
   }, []);
 
@@ -349,8 +429,8 @@ export function TaxReturnProvider({ children }: { children: React.ReactNode }) {
       try {
         const encrypted = encrypt(JSON.stringify(state));
         localStorage.setItem(STORAGE_KEY, encrypted);
-      } catch (error) {
-        console.error('Failed to save tax return state:', error);
+      } catch {
+        // Silently fail - data will be re-entered
       }
     }, 500);
 

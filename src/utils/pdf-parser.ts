@@ -315,8 +315,7 @@ export const extractTextFromPDF = async (file: File): Promise<string> => {
     }
 
     return fullText;
-  } catch (error) {
-    console.error('PDF parsing error:', error);
+  } catch {
     throw new Error('Failed to parse PDF. Please ensure the file is a valid PDF document.');
   }
 };

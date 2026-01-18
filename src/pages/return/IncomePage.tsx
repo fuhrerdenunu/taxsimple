@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useTaxReturn, T4Slip, T4ASlip, T5Slip, T2125Data, CapitalGainsTransaction } from '../../context/TaxReturnContext';
+import { useTaxReturn, T4Slip, T4ASlip, T5Slip, T2125Data, CapitalGainsTransaction, IncomeSlip } from '../../context/TaxReturnContext';
 import { formatCurrency } from '../../domain/tax';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -72,7 +72,7 @@ export function IncomePage() {
   const { taxYear } = useParams();
   const { state, dispatch } = useTaxReturn();
   const [activeForm, setActiveForm] = useState<ActiveForm>('none');
-  const [editingSlip, setEditingSlip] = useState<any>(null);
+  const [editingSlip, setEditingSlip] = useState<IncomeSlip | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showFormSearch, setShowFormSearch] = useState(false);
@@ -871,7 +871,7 @@ export function IncomePage() {
       </Card>
 
       {/* T4 Form Modal */}
-      {activeForm === 't4' && editingSlip && (
+      {activeForm === 't4' && editingSlip && editingSlip.type === 'T4' && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '24px' }}>
           <Card style={{ maxWidth: '500px', width: '100%', maxHeight: '90vh', overflow: 'auto' }}>
             <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '20px' }}>
@@ -892,7 +892,7 @@ export function IncomePage() {
       )}
 
       {/* T4A Form Modal */}
-      {activeForm === 't4a' && editingSlip && (
+      {activeForm === 't4a' && editingSlip && editingSlip.type === 'T4A' && (
         <T4AForm
           slip={editingSlip}
           onChange={setEditingSlip}
@@ -903,7 +903,7 @@ export function IncomePage() {
       )}
 
       {/* T2125 Form Modal */}
-      {activeForm === 't2125' && editingSlip && (
+      {activeForm === 't2125' && editingSlip && editingSlip.type === 'T2125' && (
         <T2125Form
           data={editingSlip}
           onChange={setEditingSlip}
@@ -914,7 +914,7 @@ export function IncomePage() {
       )}
 
       {/* T5 Form Modal */}
-      {activeForm === 't5' && editingSlip && (
+      {activeForm === 't5' && editingSlip && editingSlip.type === 'T5' && (
         <T5Form
           slip={editingSlip}
           onChange={setEditingSlip}

@@ -1,9 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
+import CryptoJS from 'crypto-js';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
 import { Alert } from '../../components/ui/Alert';
+
+// Token storage uses sessionStorage (cleared on browser close) with basic obfuscation
+const TOKEN_STORAGE_KEY = 'taxsimple_rst';
+const getTokenStore = (): Record<string, { expires: string; email: string }> => {
+  try {
+    const stored = sessionStorage.getItem(TOKEN_STORAGE_KEY);
+    if (!stored) return {};
+    const decoded = atob(stored);
+    return JSON.parse(decoded);
+  } catch {
+    return {};
+  }
+};
+
+const setTokenStore = (tokens: Record<string, { expires: string; email: string }>) => {
+  const encoded = btoa(JSON.stringify(tokens));
+  sessionStorage.setItem(TOKEN_STORAGE_KEY, encoded);
+};
 
 export function ResetPasswordPage() {
   const navigate = useNavigate();
@@ -19,11 +38,16 @@ export function ResetPasswordPage() {
     if (token) {
       // Simulate token validation
       setTimeout(() => {
-        // Check if token exists in localStorage (simulated)
-        const resetTokens = JSON.parse(localStorage.getItem('taxsimple_reset_tokens') || '{}');
-        if (resetTokens[token] && new Date(resetTokens[token].expires) > new Date()) {
+        const resetTokens = getTokenStore();
+        const tokenData = resetTokens[token];
+        if (tokenData && new Date(tokenData.expires) > new Date()) {
           setStatus('ready');
         } else {
+          // Clean up expired token
+          if (tokenData) {
+            delete resetTokens[token];
+            setTokenStore(resetTokens);
+          }
           setStatus('invalid');
         }
       }, 1000);
@@ -80,9 +104,11 @@ export function ResetPasswordPage() {
     // Simulate password reset
     setTimeout(() => {
       // Remove used token
-      const resetTokens = JSON.parse(localStorage.getItem('taxsimple_reset_tokens') || '{}');
-      delete resetTokens[token!];
-      localStorage.setItem('taxsimple_reset_tokens', JSON.stringify(resetTokens));
+      if (token) {
+        const resetTokens = getTokenStore();
+        delete resetTokens[token];
+        setTokenStore(resetTokens);
+      }
 
       setStatus('success');
     }, 1500);

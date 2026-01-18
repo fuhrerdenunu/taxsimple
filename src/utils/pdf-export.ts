@@ -1,8 +1,6 @@
 import { jsPDF } from 'jspdf';
 import type { TaxResult } from '../domain/tax';
-import type { TaxReturn, T4Slip, T4ASlip, T5Slip, T2125Data, CapitalGainsTransaction } from '../context/TaxReturnContext';
-
-type Slip = T4Slip | T4ASlip | T5Slip | T2125Data | CapitalGainsTransaction;
+import type { TaxReturn, IncomeSlip } from '../context/TaxReturnContext';
 
 interface Profile {
   firstName: string;
@@ -183,7 +181,7 @@ export function exportTaxDataJSON(
       // SIN intentionally excluded
     },
     income: {
-      slips: taxReturn.slips.map((slip: Slip) => {
+      slips: taxReturn.slips.map((slip: IncomeSlip) => {
         if (slip.type === 'T4') {
           return {
             type: slip.type,
