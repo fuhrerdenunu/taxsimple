@@ -398,12 +398,21 @@ export function IncomePage() {
           // Likely Quebec RL slip
           handleParsedData({ ...data, type: 'RL1' });
         } else {
-          // Truly unknown - show as generic T4A
+          // Truly unknown - convert to T4A for editing
           setEditingSlip({
             id: slipId,
-            type: 'unknown',
+            type: 'T4A',
             payerName: data.payerName || 'Unknown Slip',
-            boxes: data.boxes
+            boxes: {
+              16: data.boxes[16] || 0,
+              18: data.boxes[18] || 0,
+              20: data.boxes[20] || 0,
+              22: data.boxes[22] || 0,
+              24: data.boxes[24] || 0,
+              28: data.boxes[28] || 0,
+              105: data.boxes[105] || 0,
+              135: data.boxes[135] || 0,
+            }
           });
           setActiveForm('t4a');
         }

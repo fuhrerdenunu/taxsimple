@@ -92,29 +92,46 @@ const extractPayerName = (text: string): string | undefined => {
 const detectDocumentType = (text: string): SlipType => {
   const upperText = text.toUpperCase();
 
-  // Quebec forms (RL/Relevé)
-  if (upperText.includes('RELEVÉ 1') || upperText.includes('RL-1') || upperText.includes('RL1')) return 'RL1';
-  if (upperText.includes('RELEVÉ 2') || upperText.includes('RL-2') || upperText.includes('RL2')) return 'RL2';
-  if (upperText.includes('RELEVÉ 3') || upperText.includes('RL-3') || upperText.includes('RL3')) return 'RL3';
-  if (upperText.includes('RELEVÉ 8') || upperText.includes('RL-8') || upperText.includes('RL8')) return 'RL8';
+  // Look for explicit form identifiers first (exact matches with word boundaries)
+  // These are the official CRA form names that appear on slips
 
-  // Specific T-slips (order matters - check specific ones first)
-  if (upperText.includes('T4FHSA') || upperText.includes('FIRST HOME SAVINGS')) return 'T4FHSA';
-  if (upperText.includes('T4A-RCA') || upperText.includes('RETIREMENT COMPENSATION')) return 'T4A-RCA';
-  if (upperText.includes('T4RSP') || upperText.includes('RRSP INCOME')) return 'T4RSP';
-  if (upperText.includes('T4RIF') || upperText.includes('RRIF INCOME')) return 'T4RIF';
-  if (upperText.includes('T4PS') || upperText.includes('PROFIT SHARING')) return 'T4PS';
-  if (upperText.includes('T4E') || upperText.includes('EMPLOYMENT INSURANCE')) return 'T4E';
-  if (upperText.includes('T4A') || upperText.includes('STATEMENT OF PENSION')) return 'T4A';
-  if (upperText.includes('T5008') || upperText.includes('SECURITIES TRANSACTIONS')) return 'T5008';
-  if (upperText.includes('T5013') || upperText.includes('PARTNERSHIP')) return 'T5013';
-  if (upperText.includes('T2202') || upperText.includes('TUITION') || upperText.includes('EDUCATION AMOUNTS')) return 'T2202';
-  if (upperText.includes('T5') || upperText.includes('STATEMENT OF INVESTMENT INCOME')) return 'T5';
-  if (upperText.includes('T3') || upperText.includes('TRUST INCOME') || upperText.includes('STATEMENT OF TRUST')) return 'T3';
-  if (upperText.includes('T10') || upperText.includes('PENSION ADJUSTMENT')) return 'T10';
-  if (upperText.includes('RC62') || upperText.includes('UNIVERSAL CHILD CARE')) return 'RC62';
-  if (upperText.includes('RC210') || upperText.includes('WORKING INCOME TAX')) return 'RC210';
-  if (upperText.includes('T4') || upperText.includes('STATEMENT OF REMUNERATION') || upperText.includes('EMPLOYMENT INCOME')) return 'T4';
+  // Quebec forms (RL/Relevé) - check first as they have distinct identifiers
+  if (/\bRELEVÉ\s*1\b|\bRL-?1\b/.test(upperText)) return 'RL1';
+  if (/\bRELEVÉ\s*2\b|\bRL-?2\b/.test(upperText)) return 'RL2';
+  if (/\bRELEVÉ\s*3\b|\bRL-?3\b/.test(upperText)) return 'RL3';
+  if (/\bRELEVÉ\s*8\b|\bRL-?8\b/.test(upperText)) return 'RL8';
+
+  // T4 variants - check specific ones BEFORE generic T4
+  if (/\bT4FHSA\b/.test(upperText) || upperText.includes('FIRST HOME SAVINGS ACCOUNT')) return 'T4FHSA';
+  if (/\bT4A-RCA\b/.test(upperText)) return 'T4A-RCA';
+  if (/\bT4RSP\b/.test(upperText)) return 'T4RSP';
+  if (/\bT4RIF\b/.test(upperText)) return 'T4RIF';
+  if (/\bT4PS\b/.test(upperText)) return 'T4PS';
+  if (/\bT4E\b/.test(upperText) || upperText.includes('STATEMENT OF EMPLOYMENT INSURANCE')) return 'T4E';
+  if (/\bT4A\b/.test(upperText) || upperText.includes('STATEMENT OF PENSION')) return 'T4A';
+
+  // T5 variants - check specific ones BEFORE generic T5
+  if (/\bT5008\b/.test(upperText) || upperText.includes('STATEMENT OF SECURITIES TRANSACTIONS')) return 'T5008';
+  // T5013 requires explicit form number - "PARTNERSHIP" alone is not sufficient
+  if (/\bT5013\b/.test(upperText) || upperText.includes('STATEMENT OF PARTNERSHIP INCOME')) return 'T5013';
+
+  // Other specific slips
+  if (/\bT2202\b/.test(upperText) || upperText.includes('TUITION AND ENROLMENT CERTIFICATE')) return 'T2202';
+  if (/\bT10\b/.test(upperText) && upperText.includes('PENSION ADJUSTMENT')) return 'T10';
+  if (/\bRC62\b/.test(upperText)) return 'RC62';
+  if (/\bRC210\b/.test(upperText)) return 'RC210';
+
+  // Generic T slips - only match if the specific form number appears
+  if (/\bT5\b/.test(upperText) || upperText.includes('STATEMENT OF INVESTMENT INCOME')) return 'T5';
+  if (/\bT3\b/.test(upperText) || upperText.includes('STATEMENT OF TRUST INCOME')) return 'T3';
+
+  // T4 is most common - check last with multiple indicators
+  // Must have T4 form number OR typical T4 content
+  if (/\bT4\b/.test(upperText) ||
+      upperText.includes('STATEMENT OF REMUNERATION PAID') ||
+      (upperText.includes('EMPLOYMENT INCOME') && upperText.includes('CPP') && upperText.includes('EI'))) {
+    return 'T4';
+  }
 
   return 'unknown';
 };
