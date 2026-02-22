@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useTaxReturn, T4Slip, T4ASlip, T5Slip, T2125Data, CapitalGainsTransaction, IncomeSlip } from '../../context/TaxReturnContext';
+import { useTaxReturn, T4Slip, T4ASlip, T4RSPSlip, T5Slip, T2125Data, CapitalGainsTransaction, IncomeSlip } from '../../context/TaxReturnContext';
 import { formatCurrency } from '../../domain/tax';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -301,6 +301,25 @@ export function IncomePage() {
           }
         });
         setActiveForm('t4fhsa');
+        break;
+
+      case 'T4RSP':
+        setEditingSlip({
+          id: slipId,
+          type: 'T4RSP',
+          payerName: data.payerName || '',
+          boxes: {
+            16: data.boxes[16] || 0,  // Annuity payments
+            18: data.boxes[18] || 0,  // Refund of premiums
+            20: data.boxes[20] || 0,  // HBP withdrawal
+            22: data.boxes[22] || 0,  // Income tax deducted
+            26: data.boxes[26] || 0,  // LLP withdrawal
+            28: data.boxes[28] || 0,  // Other income
+            34: data.boxes[34] || 0,  // Excess amount
+            40: data.boxes[40] || 0,  // Amount taxable
+          }
+        });
+        setActiveForm('rrsp');
         break;
 
       case 'T5':

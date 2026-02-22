@@ -1,5 +1,5 @@
 import type { TaxInput } from '../types';
-import { taxYearConfig2024 } from '../config/federal';
+import { taxYearConfig2025 } from '../config/federal';
 import { calculateBracketedTax } from './bracket-tax';
 import { calculateDonationCredit, calculateMedicalCredit, calculateAdjustedBPA } from './credits';
 
@@ -18,8 +18,8 @@ interface FederalTaxResult {
  * @returns Federal tax calculation breakdown
  */
 export function calculateFederalTax(taxableIncome: number, input: TaxInput): FederalTaxResult {
-  const config = taxYearConfig2024;
-  const fedRate = 0.15; // Lowest federal bracket rate for credits
+  const config = taxYearConfig2025;
+  const fedRate = 0.145; // 2025 blended lowest federal bracket rate for credits
 
   // Calculate gross federal tax
   const grossTax = calculateBracketedTax(taxableIncome, config.federal.brackets);

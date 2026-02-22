@@ -1,5 +1,5 @@
 import type { TaxInput, TaxResult, ProvinceCode } from '../types';
-import { taxYearConfig2024 } from '../config/federal';
+import { taxYearConfig2025 } from '../config/federal';
 import { getProvincialConfig } from '../config/provincial';
 import { calculateFederalTax, applyQuebecAbatement } from './federal-tax';
 import { calculateProvincialTax, getProvinceName } from './provincial-tax';
@@ -18,7 +18,7 @@ import { calculateOntarioHealthPremium } from './ontario-health-premium';
  * @returns Complete tax calculation result
  */
 export function calculateTax(input: TaxInput): TaxResult {
-  const config = taxYearConfig2024;
+  const config = taxYearConfig2025;
   const provincialConfig = getProvincialConfig(input.province);
 
   // Calculate Total Income

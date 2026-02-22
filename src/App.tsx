@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { TaxReturnProvider } from './context/TaxReturnContext';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
@@ -59,7 +59,7 @@ export default function App() {
   return (
     <>
       <style>{globalStyles}</style>
-      <BrowserRouter>
+      <HashRouter>
         <AuthProvider>
           <Routes>
             {/* Public Routes */}
@@ -108,7 +108,7 @@ export default function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </AuthProvider>
-      </BrowserRouter>
+      </HashRouter>
     </>
   );
 }

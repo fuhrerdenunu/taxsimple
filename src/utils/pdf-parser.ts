@@ -206,6 +206,37 @@ const parseT4 = (text: string): ParsedSlipData => {
   return result;
 };
 
+// Special handling for T4RSP
+const parseT4RSP = (text: string): ParsedSlipData => {
+  const result = parseGenericSlip(text, 'T4RSP');
+
+  // RRSP withdrawal amount
+  if (!result.boxes[18]) {
+    const withdrawalMatch = text.match(/(?:refund\s+of\s+premiums|withdrawal)[:\s]+\$?([\d,]+\.?\d*)/i);
+    if (withdrawalMatch) {
+      result.boxes[18] = parseCurrency(withdrawalMatch[1]);
+    }
+  }
+
+  // HBP withdrawal (Box 20)
+  if (!result.boxes[20]) {
+    const hbpMatch = text.match(/(?:home\s+buyers|HBP)[:\s]+\$?([\d,]+\.?\d*)/i);
+    if (hbpMatch) {
+      result.boxes[20] = parseCurrency(hbpMatch[1]);
+    }
+  }
+
+  // LLP withdrawal (Box 26)
+  if (!result.boxes[26]) {
+    const llpMatch = text.match(/(?:lifelong\s+learning|LLP)[:\s]+\$?([\d,]+\.?\d*)/i);
+    if (llpMatch) {
+      result.boxes[26] = parseCurrency(llpMatch[1]);
+    }
+  }
+
+  return result;
+};
+
 // Special handling for T5
 const parseT5 = (text: string): ParsedSlipData => {
   const result = parseGenericSlip(text, 'T5');
@@ -281,6 +312,9 @@ export const parseSlipText = (text: string): ParsedSlipData => {
   switch (docType) {
     case 'T4':
       result = parseT4(text);
+      break;
+    case 'T4RSP':
+      result = parseT4RSP(text);
       break;
     case 'T5':
       result = parseT5(text);
