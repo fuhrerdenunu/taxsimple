@@ -2,7 +2,7 @@
 // Pure TypeScript tax calculation module for Canadian taxes
 
 // Current tax year - update this annually
-export const CURRENT_TAX_YEAR = 2024;
+export const CURRENT_TAX_YEAR = 2025;
 
 // Main calculation function
 export { calculateTax } from './calculators';
@@ -21,11 +21,18 @@ export {
   calculateAdjustedBPA
 } from './calculators';
 
-// Configuration
+// Configuration - 2024
 export { taxYearConfig2024 } from './config/federal';
 export { federal2024 } from './config/federal';
 export { cpp2024, cpp2_2024 } from './config/cpp';
 export { ei2024, eiQuebec2024 } from './config/ei';
+
+// Configuration - 2025 (current)
+export { taxYearConfig2025 } from './config/federal';
+export { federal2025 } from './config/federal';
+export { cpp2025, cpp2_2025 } from './config/cpp';
+export { ei2025, eiQuebec2025 } from './config/ei';
+
 export { provincial2024, PROVINCES, getProvincialConfig } from './config/provincial';
 
 // Types

@@ -72,13 +72,13 @@ describe('calculateTax', () => {
       const input: TaxInput = {
         province: 'ON',
         employmentIncome: 200000,
-        rrspDeduction: 50000 // Over the $31,560 limit
+        rrspDeduction: 50000 // Over the $32,490 limit (2025)
       };
 
       const result = calculateTax(input);
 
-      // Deductions should be capped at $31,560
-      expect(result.totalDeductions).toBe(31560);
+      // Deductions should be capped at $32,490 (2025 limit)
+      expect(result.totalDeductions).toBe(32490);
     });
 
     it('caps FHSA deduction at annual limit', () => {
@@ -214,7 +214,7 @@ describe('calculateTax', () => {
       const input: TaxInput = {
         province: 'ON',
         employmentIncome: 20000,
-        rrspDeduction: 31560,
+        rrspDeduction: 32490,
         fhsaDeduction: 8000
       };
 

@@ -114,6 +114,24 @@ export interface RL1Slip {
   };
 }
 
+export interface T4RSPSlip {
+  id: string;
+  type: 'T4RSP';
+  payerName: string;
+  boxes: {
+    16?: number; // Annuity payments
+    18?: number; // Refund of premiums
+    20?: number; // HBP withdrawal
+    22?: number; // Income tax deducted
+    26?: number; // LLP withdrawal
+    28?: number; // Other income or deductions
+    30?: number; // Deemed receipt
+    34?: number; // Excess amount
+    36?: number; // Number of months
+    40?: number; // Amount taxable
+  };
+}
+
 export interface UnknownSlip {
   id: string;
   type: 'unknown';
@@ -142,7 +160,7 @@ export interface CapitalGainsTransaction {
   gain: number; // Calculated: proceeds - ACB - expenses
 }
 
-export type IncomeSlip = T4Slip | T4ASlip | T4ESlip | T4FHSASlip | T5Slip | T3Slip | T5008Slip | RL1Slip | UnknownSlip | T2125Data | CapitalGainsTransaction;
+export type IncomeSlip = T4Slip | T4ASlip | T4ESlip | T4FHSASlip | T4RSPSlip | T5Slip | T3Slip | T5008Slip | RL1Slip | UnknownSlip | T2125Data | CapitalGainsTransaction;
 
 export interface SpouseProfile {
   firstName: string;
@@ -448,6 +466,10 @@ export function TaxReturnProvider({ children }: { children: React.ReactNode }) {
     let eiPremiums = 0;
     let unionDues = 0;
 
+    let interestFromSlips = 0;
+    let dividendFromSlips = 0;
+    let otherSlipIncome = 0;
+
     currentReturn.slips.forEach(slip => {
       if (slip.type === 'T4') {
         employmentIncome += slip.boxes[14] || 0;
@@ -456,7 +478,26 @@ export function TaxReturnProvider({ children }: { children: React.ReactNode }) {
         eiPremiums += slip.boxes[18] || 0;
         unionDues += slip.boxes[44] || 0;
       } else if (slip.type === 'T4A') {
+        otherSlipIncome += (slip.boxes[16] || 0) + (slip.boxes[18] || 0) +
+                           (slip.boxes[20] || 0) + (slip.boxes[28] || 0);
         taxWithheld += slip.boxes[22] || 0;
+      } else if (slip.type === 'T4RSP') {
+        otherSlipIncome += (slip.boxes[16] || 0) + (slip.boxes[18] || 0) +
+                           (slip.boxes[34] || 0);
+        taxWithheld += slip.boxes[22] || 0;
+      } else if (slip.type === 'T4E') {
+        otherSlipIncome += slip.boxes[14] || 0;
+        taxWithheld += slip.boxes[22] || 0;
+      } else if (slip.type === 'T5') {
+        interestFromSlips += slip.boxes[13] || 0;
+        dividendFromSlips += slip.boxes[24] || 0;
+      } else if (slip.type === 'T3') {
+        interestFromSlips += slip.boxes[49] || 0;
+        dividendFromSlips += slip.boxes[23] || 0;
+        taxWithheld += slip.boxes[32] || 0;
+      } else if (slip.type === 'RL1') {
+        employmentIncome += slip.boxes['A'] || 0;
+        taxWithheld += slip.boxes['E'] || 0;
       }
     });
 
@@ -465,10 +506,10 @@ export function TaxReturnProvider({ children }: { children: React.ReactNode }) {
       employmentIncome,
       selfEmploymentIncome: currentReturn.otherIncome.selfEmployment,
       rentalIncome: currentReturn.otherIncome.rental,
-      interestIncome: currentReturn.otherIncome.interest,
-      dividendIncome: currentReturn.otherIncome.dividends,
+      interestIncome: currentReturn.otherIncome.interest + interestFromSlips,
+      dividendIncome: currentReturn.otherIncome.dividends + dividendFromSlips,
       capitalGains: currentReturn.otherIncome.capitalGains,
-      otherIncome: currentReturn.otherIncome.other,
+      otherIncome: currentReturn.otherIncome.other + otherSlipIncome,
       taxWithheld,
       cppContributions,
       eiPremiums,

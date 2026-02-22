@@ -9,6 +9,7 @@ import { RRSPForm } from '../../components/tax/RRSPForm';
 
 // RRSP contribution limits by tax year (from CRA)
 const RRSP_LIMITS: Record<number, number> = {
+  2025: 32490,
   2024: 31560,
   2023: 30780,
   2022: 29210,
@@ -22,13 +23,13 @@ export function DeductionsPage() {
   const { state, dispatch } = useTaxReturn();
   const [showRRSPForm, setShowRRSPForm] = useState(false);
 
-  const year = taxYear ? parseInt(taxYear, 10) : 2024;
-  const defaultRRSPLimit = RRSP_LIMITS[year] || RRSP_LIMITS[2024];
+  const year = taxYear ? parseInt(taxYear, 10) : 2025;
+  const defaultRRSPLimit = RRSP_LIMITS[year] || RRSP_LIMITS[2025];
   const [rrspLimit, setRRSPLimit] = useState(defaultRRSPLimit);
 
   // Update RRSP limit when year changes
   useMemo(() => {
-    setRRSPLimit(RRSP_LIMITS[year] || RRSP_LIMITS[2024]);
+    setRRSPLimit(RRSP_LIMITS[year] || RRSP_LIMITS[2025]);
   }, [year]);
 
   const handleDeductionChange = (field: string, value: number) => {
