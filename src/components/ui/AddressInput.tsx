@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { findAddressSuggestions, isCanadaPostConfigured, retrieveAddressDetails } from '../../utils/address-complete';
+import { fetchFreeAddressSuggestions, isFreeAddressApiConfigured, type FreeAddressSuggestion } from '../../utils/free-address-autocomplete';
 
 interface AddressSuggestion {
   Id: string;
@@ -178,7 +180,7 @@ export function AddressInput({ value, onChange, label, required }: AddressInputP
   };
 
   const fetchAddressDetails = async (id: string): Promise<AddressDetails | null> => {
-    if (!CANADA_POST_API_KEY) return null;
+    if (!isCanadaPostConfigured()) return null;
 
     try {
       const url = `https://ws1.postescanada-canadapost.ca/AddressComplete/Interactive/Retrieve/v2.10/json3.ws?Key=${CANADA_POST_API_KEY}&Id=${encodeURIComponent(id)}`;

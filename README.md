@@ -176,6 +176,25 @@ npm run dist -- --mac --publish=never
 # The app will be automatically notarized if credentials are set
 ```
 
+## Address Autocomplete Configuration
+
+TaxSimple now prioritizes a **free address autocomplete provider** first, while preserving Canada Post AddressComplete as a fallback path.
+
+1. Create a `.env.local` file in the project root.
+2. Configure providers:
+
+```bash
+# Free provider (first choice). Point this to your canada-address-autocomplete-api deployment.
+REACT_APP_FREE_ADDRESS_API_BASE_URL=https://your-free-canada-autocomplete-endpoint
+
+# Canada Post fallback (used when free provider is unavailable/no results)
+REACT_APP_CANADA_POST_API_KEY=your_canada_post_key
+# Optional: override endpoint base URL (useful for testing/proxying)
+REACT_APP_CANADA_POST_API_BASE_URL=https://ws1.postescanada-canadapost.ca/AddressComplete/Interactive
+```
+
+Lookup order is: **Free API → Canada Post → OpenStreetMap fallback**.
+
 ## API Reference
 
 ### Tax Engine Functions

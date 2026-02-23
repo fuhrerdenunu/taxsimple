@@ -414,7 +414,7 @@ export function ProfilePage() {
       </Section>
 
       {/* Auto-fill & add forms */}
-      <Section title="Auto-fill & add forms" subtitle="File faster by automatically importing information to your return and add any remaining forms you need.">
+      <div id="section-autofill"><Section title="Auto-fill & add forms" subtitle="File faster by automatically importing information to your return and add any remaining forms you need.">
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -502,10 +502,10 @@ export function ProfilePage() {
             </button>
           </div>
         </div>
-      </Section>
+      </Section></div>
 
       {/* Personal Information */}
-      <Section title="Personal information" subtitle="Let's get back to filling out your personal information.">
+      <div id="section-personal"><Section title="Personal information" subtitle="Let's get back to filling out your personal information.">
         {/* NETFILE Access Code */}
         <div style={{
           padding: '20px',
@@ -904,7 +904,7 @@ export function ProfilePage() {
             </select>
           </div>
         </div>
-      </Section>
+      </Section></div>
 
       {/* Spouse Tax Situations (if filing together) */}
       {showSpouseSection && ext.filingForSpouse && (
@@ -990,7 +990,7 @@ export function ProfilePage() {
 
       {/* Ontario Trillium Benefit Details */}
       {isOntario && ext.applyTrillium && (
-        <Section title="Ontario Trillium Benefit: Property and Energy Tax Grants and Credits" dark>
+        <div id="section-trillium"><Section title="Ontario Trillium Benefit: Property and Energy Tax Grants and Credits" dark>
           {ext.filingForSpouse && (
             <div style={{
               padding: '12px 16px',
@@ -1163,7 +1163,7 @@ export function ProfilePage() {
           }}>
             + Add another address
           </button>
-        </Section>
+        </Section></div>
       )}
 
       {/* Continue Button */}
