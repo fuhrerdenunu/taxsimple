@@ -12,60 +12,30 @@ import { T5Form } from '../../components/tax/T5Form';
 import { CapitalGainsForm } from '../../components/tax/CapitalGainsForm';
 import { FileUpload } from '../../components/tax/FileUpload';
 import { ParsedSlipData } from '../../utils/pdf-parser';
+import { FORM_REGISTRY } from '../../domain/forms/form-registry';
 
 type ActiveForm = 'none' | 't4' | 't4a' | 't4e' | 't4fhsa' | 't2125' | 't5' | 't3' | 't5008' | 'tuition' | 'rl1' | 'rrsp' | 'capitalGains';
 
-// Form categories like Wealthsimple Tax
-const FORM_CATEGORIES = {
-  employment: {
-    label: 'Employment',
-    icon: '💼',
-    forms: [
-      { id: 't4', name: 'T4', description: 'Employment Income' },
-      { id: 't4a', name: 'T4A', description: 'Pension & Other Income' },
-      { id: 't4e', name: 'T4E', description: 'Employment Insurance Benefits' },
-    ]
+// Form categories generated from canonical registry
+const FORM_CATEGORIES = FORM_REGISTRY.reduce<Record<string, { label: string; icon: string; forms: { id: string; name: string; description: string }[] }>>(
+  (acc, form) => {
+    const key = form.category.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (!acc[key]) {
+      acc[key] = {
+        label: form.category,
+        icon: '🧾',
+        forms: []
+      };
+    }
+    acc[key].forms.push({
+      id: form.id,
+      name: form.code,
+      description: `${form.name}${form.supportedStatus === 'planned' ? ' (Planned)' : ''}`
+    });
+    return acc;
   },
-  selfEmployment: {
-    label: 'Self-Employment',
-    icon: '🏢',
-    forms: [
-      { id: 't2125', name: 'T2125', description: 'Business/Professional Income' },
-    ]
-  },
-  investment: {
-    label: 'Investment',
-    icon: '📈',
-    forms: [
-      { id: 't5', name: 'T5', description: 'Interest & Dividends' },
-      { id: 't3', name: 'T3', description: 'Trust Income' },
-      { id: 't5008', name: 'T5008', description: 'Securities Transactions' },
-      { id: 'capitalGains', name: 'Capital Gains', description: 'Sale of Stocks & Property' },
-    ]
-  },
-  retirement: {
-    label: 'Retirement & Savings',
-    icon: '🏦',
-    forms: [
-      { id: 'rrsp', name: 'RRSP', description: 'Registered Retirement Savings' },
-      { id: 't4fhsa', name: 'T4FHSA', description: 'First Home Savings Account' },
-    ]
-  },
-  education: {
-    label: 'Education',
-    icon: '🎓',
-    forms: [
-      { id: 'tuition', name: 'T2202', description: 'Tuition & Education' },
-    ]
-  },
-  quebec: {
-    label: 'Quebec',
-    icon: '⚜️',
-    forms: [
-      { id: 'rl1', name: 'RL-1', description: 'Quebec Employment Income' },
-    ]
-  }
-};
+  {}
+);
 
 export function IncomePage() {
   const navigate = useNavigate();

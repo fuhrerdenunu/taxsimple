@@ -233,8 +233,8 @@ export function ProfilePage() {
     } else {
       setFormErrors([]);
 
-      // We will route to the new dynamic workspace page
-      navigate(`/return/${taxYear}/workspace`);
+      const person = location.search.includes('section=partner') ? 'partner' : 'primary';
+      navigate(`/return/${taxYear}/person/${person}/workspace`);
     }
   };
 

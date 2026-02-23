@@ -1,5 +1,5 @@
 import React from 'react';
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { TaxReturnProvider } from './context/TaxReturnContext';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
@@ -17,6 +17,9 @@ import { TermsPage } from './pages/TermsPage';
 import { SupportPage } from './pages/SupportPage';
 import { TaxWizard } from './pages/return/TaxWizard';
 import WorkspacePage from './pages/return/WorkspacePage';
+import { ReviewPage } from './pages/return/ReviewPage';
+import { CompletePage } from './pages/return/CompletePage';
+import { DocumentsPage } from './pages/DocumentsPage';
 
 // Global styles
 const globalStyles = `
@@ -49,9 +52,22 @@ const globalStyles = `
   a:hover {
     text-decoration: underline;
   }
+
+  :focus-visible {
+    outline: 2px solid #0D5F2B;
+    outline-offset: 2px;
+  }
 `;
 
 export default function App() {
+  const ProtectedTaxLayout = () => (
+    <ProtectedRoute>
+      <TaxReturnProvider>
+        <Outlet />
+      </TaxReturnProvider>
+    </ProtectedRoute>
+  );
+
   return (
     <>
       <style>{globalStyles}</style>
@@ -70,40 +86,18 @@ export default function App() {
             <Route path="/auth/reset-password/:token" element={<ResetPasswordPage />} />
 
             {/* Protected Routes */}
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <TaxReturnProvider>
-                    <DashboardPage />
-                  </TaxReturnProvider>
-                </ProtectedRoute>
-              }
-            />
+            <Route element={<ProtectedTaxLayout />}>
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/documents" element={<DocumentsPage />} />
 
-            {/* Dynamic Workspace (standalone route, outside TaxWizard) */}
-            <Route
-              path="/return/:taxYear/workspace"
-              element={
-                <ProtectedRoute>
-                  <TaxReturnProvider>
-                    <WorkspacePage />
-                  </TaxReturnProvider>
-                </ProtectedRoute>
-              }
-            />
+              {/* Canonical year/person routes */}
+              <Route path="/return/:taxYear/person/:personId/workspace" element={<WorkspacePage />} />
+              <Route path="/return/:taxYear/person/:personId/review" element={<ReviewPage />} />
+              <Route path="/return/:taxYear/person/:personId/submit" element={<CompletePage />} />
 
-            {/* Tax Return Wizard */}
-            <Route
-              path="/return/:taxYear/*"
-              element={
-                <ProtectedRoute>
-                  <TaxReturnProvider>
-                    <TaxWizard />
-                  </TaxReturnProvider>
-                </ProtectedRoute>
-              }
-            />
+              {/* Legacy route wrappers and redirects */}
+              <Route path="/return/:taxYear/*" element={<TaxWizard />} />
+            </Route>
 
             {/* Catch all - redirect to home */}
             <Route path="*" element={<Navigate to="/" replace />} />

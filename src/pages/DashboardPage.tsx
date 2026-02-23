@@ -21,30 +21,30 @@ export function DashboardPage() {
   const { state, dispatch, getTaxInput } = useTaxReturn();
 
   const taxYears = [CURRENT_TAX_YEAR, CURRENT_TAX_YEAR - 1, CURRENT_TAX_YEAR - 2, CURRENT_TAX_YEAR - 3];
+  const activeUnit = state.returnsByYear[state.activeYear];
 
   const handleStartReturn = (year: number) => {
-    if (state.currentReturn.year !== year) {
-      dispatch({ type: 'NEW_RETURN', payload: year });
-    }
-    navigate(`/return/${year}/profile`);
+    dispatch({ type: 'CREATE_YEAR_RETURN', payload: year });
+    dispatch({ type: 'SET_ACTIVE_PERSON', payload: 'primary' });
+    navigate(`/return/${year}/person/primary/workspace`);
   };
 
   const handleContinueReturn = () => {
-    const year = state.currentReturn.year;
-    const status = state.currentReturn.status;
+    const year = state.activeYear;
+    const status = activeUnit?.status ?? 'not_started';
 
     // Navigate to appropriate step based on status
     if (status === 'not_started') {
-      navigate(`/return/${year}/profile`);
+      navigate(`/return/${year}/person/primary/workspace`);
     } else if (status === 'completed') {
-      navigate(`/return/${year}/complete`);
+      navigate(`/return/${year}/person/primary/submit`);
     } else {
-      navigate(`/return/${year}/profile`);
+      navigate(`/return/${year}/person/primary/workspace`);
     }
   };
 
   // Calculate current tax estimate
-  const taxInput = getTaxInput();
+  const taxInput = getTaxInput(state.activeYear, 'primary');
   const taxResult = calculateTax(taxInput);
 
   return (
@@ -64,27 +64,27 @@ export function DashboardPage() {
           </div>
 
           {/* Current Return Summary */}
-          {state.currentReturn.status !== 'not_started' && (
+          {(activeUnit?.status ?? 'not_started') !== 'not_started' && (
             <Card style={{ marginBottom: '32px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '24px' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
                     <h2 style={{ fontSize: '20px', fontWeight: 600, color: '#1F2937' }}>
-                      {state.currentReturn.year} Tax Return
+                      {state.activeYear} Tax Return
                     </h2>
                     <span style={{
                       padding: '4px 12px',
                       borderRadius: '12px',
                       fontSize: '13px',
                       fontWeight: 500,
-                      backgroundColor: statusConfig[state.currentReturn.status].bg,
-                      color: statusConfig[state.currentReturn.status].color
+                      backgroundColor: statusConfig[activeUnit?.status ?? 'not_started'].bg,
+                      color: statusConfig[activeUnit?.status ?? 'not_started'].color
                     }}>
-                      {statusConfig[state.currentReturn.status].label}
+                      {statusConfig[activeUnit?.status ?? 'not_started'].label}
                     </span>
                   </div>
                   <p style={{ fontSize: '14px', color: '#6B7280' }}>
-                    Last updated: {new Date(state.currentReturn.lastModified).toLocaleDateString()}
+                    Last updated: {activeUnit?.lastModified ? new Date(activeUnit.lastModified).toLocaleDateString() : 'N/A'}
                   </p>
                 </div>
 
@@ -132,7 +132,7 @@ export function DashboardPage() {
 
               <div style={{ marginTop: '24px' }}>
                 <Button onClick={handleContinueReturn}>
-                  {state.currentReturn.status === 'completed' ? 'View Return' : 'Continue Return'}
+                  {(activeUnit?.status ?? 'not_started') === 'completed' ? 'View Return' : 'Continue Return'}
                 </Button>
               </div>
             </Card>
@@ -148,8 +148,8 @@ export function DashboardPage() {
             gap: '16px'
           }}>
             {taxYears.map(year => {
-              const isCurrentYear = state.currentReturn.year === year;
-              const status = isCurrentYear ? state.currentReturn.status : 'not_started';
+              const unit = state.returnsByYear[year];
+              const status = unit?.status ?? 'not_started';
               const config = statusConfig[status];
 
               return (
