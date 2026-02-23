@@ -248,10 +248,31 @@ export function ProfilePage() {
     if (targetSection) {
       const targetElement = document.getElementById(`section-${targetSection}`);
       targetElement?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    if (params.get('section') === 'partner' && showSpouseSection) {
-      partnerSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }, [location.search, showSpouseSection]);
+
+  const [formErrors, setFormErrors] = useState<string[]>([]);
+
+  const handleContinue = () => {
+    const errors: string[] = [];
+    if (!profile.firstName?.trim()) errors.push('First name is required');
+    if (!profile.lastName?.trim()) errors.push('Last name is required');
+    const sinDigits = profile.sin?.replace(/\D/g, '') || '';
+    if (sinDigits.length !== 9) errors.push('Valid 9-digit Social Insurance Number is required');
+    if (!profile.province) errors.push('Province of residence is required');
+
+    if (ext.filingForSpouse) {
+      if (!profile.spouse?.firstName?.trim()) errors.push('Partner\'s first name is required when filing together');
+    }
+
+    if (errors.length > 0) {
+      setFormErrors(errors);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      setFormErrors([]);
+      navigate(`/return/${taxYear}/income`);
+    }
+  };
 
   return (
     <div style={{ paddingBottom: '80px' }}>
@@ -919,83 +940,82 @@ export function ProfilePage() {
       {/* Spouse Tax Situations (if filing together) */}
       {showSpouseSection && ext.filingForSpouse && (
         <div ref={partnerSectionRef} id="section-partner">
-        <div ref={partnerSectionRef} id="partner-section">
-        <Section title="Spouse or Common-Law Partner" dark>
-          <div style={{ padding: '0' }}>
-            <h4 style={{ fontSize: '14px', fontWeight: 500, color: 'white', marginBottom: '16px' }}>Tax situations</h4>
+          <Section title="Spouse or Common-Law Partner" dark>
+            <div style={{ padding: '0' }}>
+              <h4 style={{ fontSize: '14px', fontWeight: 500, color: 'white', marginBottom: '16px' }}>Tax situations</h4>
 
-            <InfoRow label={`Does ${profile.spouse?.firstName || 'your partner'} have an infirmity or disability?`}>
-              <ToggleSwitchCompact
-                value={ext.spouseHasDisability}
-                onChange={(v) => handleExt('spouseHasDisability', v)}
-              />
-            </InfoRow>
+              <InfoRow label={`Does ${profile.spouse?.firstName || 'your partner'} have an infirmity or disability?`}>
+                <ToggleSwitchCompact
+                  value={ext.spouseHasDisability}
+                  onChange={(v) => handleExt('spouseHasDisability', v)}
+                />
+              </InfoRow>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: '1px solid #374151' }}>
-              <input
-                type="checkbox"
-                checked={ext.cannotClaimSpouseAmount}
-                onChange={(e) => handleExt('cannotClaimSpouseAmount', e.target.checked)}
-                style={{ width: '18px', height: '18px' }}
-              />
-              <span style={{ fontSize: '14px', color: '#D1D5DB' }}>
-                Check here if you <strong>can't</strong> claim the <u>amount for partner</u> on line 30300
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: '1px solid #374151' }}>
+                <input
+                  type="checkbox"
+                  checked={ext.cannotClaimSpouseAmount}
+                  onChange={(e) => handleExt('cannotClaimSpouseAmount', e.target.checked)}
+                  style={{ width: '18px', height: '18px' }}
+                />
+                <span style={{ fontSize: '14px', color: '#D1D5DB' }}>
+                  Check here if you <strong>can't</strong> claim the <u>amount for partner</u> on line 30300
+                </span>
+              </div>
+
+              <InfoRow label={`Did you live together for all of ${year}?`}>
+                <ToggleSwitchCompact
+                  value={ext.livedTogetherAllYear}
+                  onChange={(v) => handleExt('livedTogetherAllYear', v)}
+                />
+              </InfoRow>
+
+              <InfoRow label={`Did you live together on December 31, ${year}?`}>
+                <ToggleSwitchCompact
+                  value={ext.livedTogetherDec31}
+                  onChange={(v) => handleExt('livedTogetherDec31', v)}
+                />
+              </InfoRow>
+
+              <InfoRow label={`While living apart did you support (or were you being supported by) ${profile.spouse?.firstName || 'your partner'}?`}>
+                <ToggleSwitchCompact
+                  value={ext.supportedWhileApart}
+                  onChange={(v) => handleExt('supportedWhileApart', v)}
+                />
+              </InfoRow>
+
+              <InfoRow label={`Was ${profile.spouse?.firstName || 'your partner'} a non-resident on December 31, ${year}?`}>
+                <ToggleSwitchCompact
+                  value={ext.spouseWasNonResident}
+                  onChange={(v) => handleExt('spouseWasNonResident', v)}
+                />
+              </InfoRow>
+
+              <InfoRow label="Did you live in separate principal residences for medical reasons?">
+                <ToggleSwitchCompact
+                  value={ext.liveSeparateForMedical}
+                  onChange={(v) => handleExt('liveSeparateForMedical', v)}
+                />
+              </InfoRow>
+
+              <h4 style={{ fontSize: '14px', fontWeight: 500, color: 'white', margin: '20px 0 12px' }}>Amounts transferred from your partner</h4>
+              <p style={{ fontSize: '13px', color: '#9CA3AF', marginBottom: '12px' }}>
+                We'll automatically transfer {profile.spouse?.firstName || 'your partner'}'s eligible <u>unused amounts</u> to line 32600 of your tax return.
+              </p>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0' }}>
+                <input
+                  type="checkbox"
+                  checked={!ext.transferSpouseAmounts}
+                  onChange={(e) => handleExt('transferSpouseAmounts', !e.target.checked)}
+                  style={{ width: '18px', height: '18px' }}
+                />
+                <span style={{ fontSize: '14px', color: '#D1D5DB' }}>
+                  Check here if you <strong>don't</strong> want to transfer these amounts
+                </span>
+              </div>
             </div>
-
-            <InfoRow label={`Did you live together for all of ${year}?`}>
-              <ToggleSwitchCompact
-                value={ext.livedTogetherAllYear}
-                onChange={(v) => handleExt('livedTogetherAllYear', v)}
-              />
-            </InfoRow>
-
-            <InfoRow label={`Did you live together on December 31, ${year}?`}>
-              <ToggleSwitchCompact
-                value={ext.livedTogetherDec31}
-                onChange={(v) => handleExt('livedTogetherDec31', v)}
-              />
-            </InfoRow>
-
-            <InfoRow label={`While living apart did you support (or were you being supported by) ${profile.spouse?.firstName || 'your partner'}?`}>
-              <ToggleSwitchCompact
-                value={ext.supportedWhileApart}
-                onChange={(v) => handleExt('supportedWhileApart', v)}
-              />
-            </InfoRow>
-
-            <InfoRow label={`Was ${profile.spouse?.firstName || 'your partner'} a non-resident on December 31, ${year}?`}>
-              <ToggleSwitchCompact
-                value={ext.spouseWasNonResident}
-                onChange={(v) => handleExt('spouseWasNonResident', v)}
-              />
-            </InfoRow>
-
-            <InfoRow label="Did you live in separate principal residences for medical reasons?">
-              <ToggleSwitchCompact
-                value={ext.liveSeparateForMedical}
-                onChange={(v) => handleExt('liveSeparateForMedical', v)}
-              />
-            </InfoRow>
-
-            <h4 style={{ fontSize: '14px', fontWeight: 500, color: 'white', margin: '20px 0 12px' }}>Amounts transferred from your partner</h4>
-            <p style={{ fontSize: '13px', color: '#9CA3AF', marginBottom: '12px' }}>
-              We'll automatically transfer {profile.spouse?.firstName || 'your partner'}'s eligible <u>unused amounts</u> to line 32600 of your tax return.
-            </p>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0' }}>
-              <input
-                type="checkbox"
-                checked={!ext.transferSpouseAmounts}
-                onChange={(e) => handleExt('transferSpouseAmounts', !e.target.checked)}
-                style={{ width: '18px', height: '18px' }}
-              />
-              <span style={{ fontSize: '14px', color: '#D1D5DB' }}>
-                Check here if you <strong>don't</strong> want to transfer these amounts
-              </span>
-            </div>
-          </div>
-        </Section>
+          </Section>
         </div>
       )}
 
@@ -1177,13 +1197,29 @@ export function ProfilePage() {
         </Section>
       )}
 
+      {/* Form Validation Errors */}
+      {formErrors.length > 0 && (
+        <div style={{
+          marginTop: '32px',
+          padding: '16px',
+          backgroundColor: '#FEF2F2',
+          border: '1px solid #F87171',
+          borderRadius: '8px'
+        }}>
+          <h4 style={{ color: '#991B1B', margin: '0 0 8px 0', fontSize: '14px' }}>Please fix the following before continuing:</h4>
+          <ul style={{ color: '#B91C1C', margin: 0, paddingLeft: '20px', fontSize: '13px' }}>
+            {formErrors.map((err, i) => <li key={i}>{err}</li>)}
+          </ul>
+        </div>
+      )}
+
       {/* Continue Button */}
       <div style={{
         display: 'flex',
         justifyContent: 'flex-end',
         marginTop: '32px'
       }}>
-        <Button onClick={() => navigate(`/return/${taxYear}/income`)} size="lg">
+        <Button onClick={handleContinue} size="lg">
           Continue to Income
         </Button>
       </div>

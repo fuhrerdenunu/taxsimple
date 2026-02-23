@@ -7,7 +7,6 @@ import { ReviewPage } from './ReviewPage';
 import { CompletePage } from './CompletePage';
 import { useTaxReturn } from '../../context/TaxReturnContext';
 import { calculateTax, formatCurrency, CURRENT_TAX_YEAR } from '../../domain/tax';
-import { navSections, getNavPath } from './navigationConfig';
 
 // Wealthsimple-style navigation sections
 interface NavSection {
@@ -155,7 +154,7 @@ function Header({ taxYear, firstName }: { taxYear: number; firstName: string }) 
             >
               Tax
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ marginLeft: '4px' }}>
-                <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
           </div>
@@ -179,7 +178,7 @@ function Header({ taxYear, firstName }: { taxYear: number; firstName: string }) 
             >
               {firstName}'s return
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ marginLeft: '4px' }}>
-                <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
           </div>
@@ -245,7 +244,7 @@ function Header({ taxYear, firstName }: { taxYear: number; firstName: string }) 
             >
               Account
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ marginLeft: '4px' }}>
-                <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
           </div>
@@ -290,8 +289,6 @@ function LeftSidebar({ taxYear, currentPath }: { taxYear: number; currentPath: s
     ? formOptions.filter(f => f.name.toLowerCase().includes(searchQuery.toLowerCase()))
     : formOptions;
 
-  const isActive = (section: { path: string }) => section.path === currentPath;
-  const isActive = (section: NavItem) => section.path === currentPath;
   const isActive = (section: NavSection) => {
     return section.path === currentPath;
   };
@@ -411,58 +408,6 @@ function LeftSidebar({ taxYear, currentPath }: { taxYear: number; currentPath: s
 
       {/* Navigation */}
       <nav>
-        {navSections.map((section) => {
-          const children = section.children?.filter((child) => child.id !== 'partner' || showPartnerLink) || [];
-
-          return (
-            <div key={section.id}>
-              <Link
-                to={getNavPath(taxYear, section)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  width: '100%',
-                  padding: '10px 16px',
-                  backgroundColor: isActive(section) ? '#F3F4F6' : 'transparent',
-                  border: 'none',
-                  borderLeft: isActive(section) ? '3px solid #1F2937' : '3px solid transparent',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  color: '#4B5563',
-                  textAlign: 'left',
-                  textDecoration: 'none',
-                  transition: 'all 0.15s'
-                }}
-              >
-                <span style={{ fontWeight: isActive(section) ? 500 : 400 }}>{section.label}</span>
-              </Link>
-
-              {children.map((child) => (
-                <Link
-                  key={child.id}
-                  to={getNavPath(taxYear, child)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    width: '100%',
-                    padding: '8px 16px 8px 28px',
-                    backgroundColor: child.path === currentPath ? '#F9FAFB' : 'transparent',
-                    border: 'none',
-                    borderLeft: child.path === currentPath ? '3px solid #9CA3AF' : '3px solid transparent',
-                    cursor: 'pointer',
-                    fontSize: '13px',
-                    color: '#6B7280',
-                    textAlign: 'left',
-                    textDecoration: 'none'
-                  }}
-                >
-                  {child.label}
-                </Link>
-              ))}
-            </div>
-          );
-        })}
         {navSections.map((section) => (
           <Link
             key={section.id}
@@ -561,7 +506,7 @@ export function FormSection({
             }}
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M6 6L14 14M14 6L6 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              <path d="M6 6L14 14M14 6L6 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
           </button>
         )}
@@ -593,9 +538,9 @@ export function FormSearchBar() {
 
   const filteredForms = searchQuery.length > 0
     ? formOptions.filter(f =>
-        f.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        f.description.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+      f.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      f.description.toLowerCase().includes(searchQuery.toLowerCase())
+    )
     : formOptions;
 
   return (
@@ -633,7 +578,7 @@ export function FormSearchBar() {
           padding: '12px 16px'
         }}>
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ color: '#9CA3AF', marginRight: '12px' }}>
-            <path d="M9 17A8 8 0 109 1a8 8 0 000 16zM19 19l-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M9 17A8 8 0 109 1a8 8 0 000 16zM19 19l-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           <input
             type="text"
@@ -932,7 +877,7 @@ export function SelectField({
             pointerEvents: 'none'
           }}
         >
-          <path d="M3 4.5L6 7.5L9 4.5" stroke="#6B7280" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M3 4.5L6 7.5L9 4.5" stroke="#6B7280" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </div>
       {helpText && (
@@ -988,7 +933,7 @@ export function VideoLink({ title }: { title: string }) {
         justifyContent: 'center'
       }}>
         <svg width="8" height="10" viewBox="0 0 8 10" fill="none">
-          <path d="M0 0L8 5L0 10V0Z" fill="#1F2937"/>
+          <path d="M0 0L8 5L0 10V0Z" fill="#1F2937" />
         </svg>
       </div>
       {title}
@@ -1016,7 +961,7 @@ export function ReadMoreLink({ onClick }: { onClick?: () => void }) {
     >
       Read more
       <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-        <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     </button>
   );

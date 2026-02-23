@@ -7,9 +7,7 @@ interface AddressSuggestion {
   Description: string;
   Type: string;
   provider?: 'free-api' | 'canada-post' | 'nominatim';
-  raw?: NominatimResult | FreeAddressSuggestion;
-  provider?: 'canada-post' | 'nominatim';
-  raw?: NominatimResult;
+  raw?: NominatimResult | any;
 }
 
 interface AddressDetails {
@@ -57,33 +55,6 @@ interface AddressInputProps {
   required?: boolean;
 }
 
-const PROVINCE_CODE_MAP: Record<string, string> = {
-  'Ontario': 'ON',
-  'Quebec': 'QC',
-  'British Columbia': 'BC',
-  'Alberta': 'AB',
-  'Manitoba': 'MB',
-  'Saskatchewan': 'SK',
-  'Nova Scotia': 'NS',
-  'New Brunswick': 'NB',
-  'Newfoundland and Labrador': 'NL',
-  'Prince Edward Island': 'PE',
-  'Northwest Territories': 'NT',
-  'Nunavut': 'NU',
-  'Yukon': 'YT'
-};
-
-function toProvinceCode(province?: string): string {
-  if (!province) return '';
-  if (province.length === 2) return province.toUpperCase();
-  return PROVINCE_CODE_MAP[province] || province.slice(0, 2).toUpperCase();
-}
-
-function normalizePostalCode(postalCode?: string): string {
-  if (!postalCode) return '';
-  const cleaned = postalCode.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
-  return cleaned.length > 3 ? `${cleaned.slice(0, 3)} ${cleaned.slice(3)}` : cleaned;
-}
 const CANADA_POST_API_KEY = process.env.REACT_APP_CANADA_POST_API_KEY || '';
 
 const PROVINCE_CODE_MAP: Record<string, string> = {
@@ -122,7 +93,6 @@ export function AddressInput({ value, onChange, label, required }: AddressInputP
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [error, setError] = useState<string | null>(null);
   const [activeProvider, setActiveProvider] = useState<'free-api' | 'canada-post' | 'nominatim' | null>(null);
-  const [activeProvider, setActiveProvider] = useState<'canada-post' | 'nominatim' | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
@@ -161,73 +131,6 @@ export function AddressInput({ value, onChange, label, required }: AddressInputP
     setIsLoading(true);
     setError(null);
 
-    const attemptNominatimFallback = async (message?: string) => {
-      const fallback = await fetchNominatimSuggestions(text);
-      setSuggestions(fallback);
-      setShowSuggestions(fallback.length > 0);
-      setActiveProvider('nominatim');
-      if (message) setError(message);
-    };
-
-    const attemptCanadaPostFallback = async (message?: string) => {
-      if (!isCanadaPostConfigured()) {
-        await attemptNominatimFallback(message || 'Canada Post key not configured. Showing OpenStreetMap suggestions.');
-        return;
-      }
-
-      const data = await findAddressSuggestions(text, lastId);
-      const canadaPostSuggestions = (data.Items || []).filter((item: AddressSuggestion) => item.Type !== 'Warning');
-
-      if (canadaPostSuggestions.length > 0) {
-        setSuggestions(canadaPostSuggestions.map((item: AddressSuggestion) => ({ ...item, provider: 'canada-post' })));
-        setShowSuggestions(true);
-        setActiveProvider('canada-post');
-        if (message) setError(message);
-        return;
-      }
-
-      await attemptNominatimFallback('Canada Post returned no matches. Showing OpenStreetMap suggestions.');
-    };
-
-    try {
-      if (isFreeAddressApiConfigured()) {
-        const freeApiSuggestions = await fetchFreeAddressSuggestions(text);
-
-        if (freeApiSuggestions.length > 0) {
-          setSuggestions(
-            freeApiSuggestions.map((item, index) => ({
-              Id: item.id || `free-${index}`,
-              Text: item.text,
-              Highlight: '',
-              Description: item.description,
-              Type: 'Address',
-              provider: 'free-api' as const,
-              raw: item
-            }))
-          );
-          setShowSuggestions(true);
-          setActiveProvider('free-api');
-          return;
-        }
-      }
-
-      await attemptCanadaPostFallback(
-        isFreeAddressApiConfigured()
-          ? 'Free address API returned no matches. Falling back to Canada Post/OpenStreetMap.'
-          : undefined
-      );
-    } catch {
-      try {
-        await attemptCanadaPostFallback('Free address API unavailable. Falling back to Canada Post/OpenStreetMap.');
-      } catch {
-        try {
-          await attemptNominatimFallback('Address providers unavailable. Showing OpenStreetMap suggestions.');
-        } catch {
-          setError('Address lookup unavailable. Please enter manually.');
-          setSuggestions([]);
-          setShowSuggestions(false);
-        }
-      }
 
     const attemptNominatimFallback = async (message?: string) => {
       const fallback = await fetchNominatimSuggestions(text);
@@ -279,7 +182,6 @@ export function AddressInput({ value, onChange, label, required }: AddressInputP
     if (!CANADA_POST_API_KEY) return null;
 
     try {
-      const data = await retrieveAddressDetails(id);
       const url = `https://ws1.postescanada-canadapost.ca/AddressComplete/Interactive/Retrieve/v2.10/json3.ws?Key=${CANADA_POST_API_KEY}&Id=${encodeURIComponent(id)}`;
       const response = await fetch(url);
 
@@ -311,28 +213,9 @@ export function AddressInput({ value, onChange, label, required }: AddressInputP
   }, [searchText, value.street]);
 
   const handleSelect = async (suggestion: AddressSuggestion) => {
-    if (suggestion.provider === 'free-api') {
-      const freeAddress = suggestion.raw as FreeAddressSuggestion | undefined;
-      const newAddress = {
-        street: freeAddress?.street || suggestion.Text,
-        unit: undefined,
-        city: freeAddress?.city || value.city,
-        province: toProvinceCode(freeAddress?.province) || value.province,
-        postalCode: normalizePostalCode(freeAddress?.postalCode) || value.postalCode
-      };
-
-      onChange(newAddress);
-      setSearchText(newAddress.street || suggestion.Text);
-      setShowSuggestions(false);
-      setSuggestions([]);
-      return;
-    }
-
     if (suggestion.provider === 'nominatim' && suggestion.raw) {
       const nominatim = suggestion.raw as NominatimResult;
       const address = nominatim.address || {};
-    if (suggestion.provider === 'nominatim' && suggestion.raw) {
-      const address = suggestion.raw.address || {};
       const streetParts = [address.house_number, address.road].filter(Boolean);
       const newAddress = {
         street: streetParts.join(' ').trim() || suggestion.Text,
