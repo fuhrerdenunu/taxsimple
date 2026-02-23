@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useTaxReturn, Profile } from '../../context/TaxReturnContext';
 import { PROVINCES, CURRENT_TAX_YEAR, type ProvinceCode } from '../../domain/tax';
 import { Button } from '../../components/ui/Button';
@@ -156,6 +156,7 @@ function InfoRow({
 export function ProfilePage() {
   const navigate = useNavigate();
   const { taxYear } = useParams();
+  const location = useLocation();
   const year = taxYear ? parseInt(taxYear, 10) : CURRENT_TAX_YEAR;
   const { state, dispatch } = useTaxReturn();
   const { profile } = state;
@@ -188,7 +189,7 @@ export function ProfilePage() {
     netfileCode: '',
     maritalStatusChanged: false,
     hasDependants: false,
-    filingForSpouse: false,
+    filingForSpouse: Boolean(profile.spouse?.filingTogether),
     // Spouse tax situations
     spouseHasDisability: false,
     cannotClaimSpouseAmount: false,
@@ -232,6 +233,15 @@ export function ProfilePage() {
 
   const showSpouseSection = profile.maritalStatus === 'married' || profile.maritalStatus === 'common-law';
   const isOntario = profile.province === 'ON';
+
+  const partnerSectionRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('section') === 'partner' && showSpouseSection) {
+      partnerSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [location.search, showSpouseSection]);
 
   return (
     <div style={{ paddingBottom: '80px' }}>
@@ -561,15 +571,13 @@ export function ProfilePage() {
 
           <div style={{ marginBottom: '12px' }}>
             <label style={{ display: 'block', fontSize: '12px', color: '#6B7280', marginBottom: '6px' }}>Home telephone number</label>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <input type="text" placeholder="Area" style={{ width: '60px', padding: '8px 12px', fontSize: '14px', border: '1px solid #E5E7EB', borderRadius: '6px' }} />
-              <input
-                type="text"
-                value={profile.phone}
-                onChange={(e) => handleChange('phone', e.target.value)}
-                style={{ width: '150px', padding: '8px 12px', fontSize: '14px', border: '1px solid #E5E7EB', borderRadius: '6px' }}
-              />
-            </div>
+            <input
+              type="tel"
+              value={profile.phone}
+              onChange={(e) => handleChange('phone', e.target.value)}
+              placeholder="(416) 555-1234"
+              style={{ width: '220px', padding: '8px 12px', fontSize: '14px', border: '1px solid #E5E7EB', borderRadius: '6px' }}
+            />
           </div>
 
           <InfoRow label="Do you have a non-Canadian mailing address?" hint="Select Yes if your mailing address is outside Canada">
@@ -686,7 +694,10 @@ export function ProfilePage() {
               <InfoRow label="Do you want to prepare your returns together?" hint="Filing together can optimize credits">
                 <ToggleSwitchCompact
                   value={ext.filingForSpouse}
-                  onChange={(v) => handleExt('filingForSpouse', v)}
+                  onChange={(v) => {
+                    handleExt('filingForSpouse', v);
+                    handleChange('spouse', { ...profile.spouse, filingTogether: v, firstName: profile.spouse?.firstName || '' });
+                  }}
                 />
               </InfoRow>
 
@@ -897,6 +908,7 @@ export function ProfilePage() {
 
       {/* Spouse Tax Situations (if filing together) */}
       {showSpouseSection && ext.filingForSpouse && (
+        <div ref={partnerSectionRef} id="partner-section">
         <Section title="Spouse or Common-Law Partner" dark>
           <div style={{ padding: '0' }}>
             <h4 style={{ fontSize: '14px', fontWeight: 500, color: 'white', marginBottom: '16px' }}>Tax situations</h4>
@@ -973,6 +985,7 @@ export function ProfilePage() {
             </div>
           </div>
         </Section>
+        </div>
       )}
 
       {/* Ontario Trillium Benefit Details */}
