@@ -248,6 +248,8 @@ export function ProfilePage() {
     if (targetSection) {
       const targetElement = document.getElementById(`section-${targetSection}`);
       targetElement?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (params.get('section') === 'partner' && showSpouseSection) {
+      partnerSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }, [location.search, showSpouseSection]);
 
@@ -917,6 +919,7 @@ export function ProfilePage() {
       {/* Spouse Tax Situations (if filing together) */}
       {showSpouseSection && ext.filingForSpouse && (
         <div ref={partnerSectionRef} id="section-partner">
+        <div ref={partnerSectionRef} id="partner-section">
         <Section title="Spouse or Common-Law Partner" dark>
           <div style={{ padding: '0' }}>
             <h4 style={{ fontSize: '14px', fontWeight: 500, color: 'white', marginBottom: '16px' }}>Tax situations</h4>

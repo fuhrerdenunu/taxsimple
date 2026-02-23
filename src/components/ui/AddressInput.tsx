@@ -10,6 +10,8 @@ interface AddressSuggestion {
   Type: string;
   provider?: 'free-api' | 'canada-post' | 'nominatim';
   raw?: NominatimResult | FreeAddressSuggestion;
+  provider?: 'canada-post' | 'nominatim';
+  raw?: NominatimResult;
 }
 
 interface AddressDetails {
@@ -84,6 +86,35 @@ function normalizePostalCode(postalCode?: string): string {
   const cleaned = postalCode.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
   return cleaned.length > 3 ? `${cleaned.slice(0, 3)} ${cleaned.slice(3)}` : cleaned;
 }
+const CANADA_POST_API_KEY = process.env.REACT_APP_CANADA_POST_API_KEY || '';
+
+const PROVINCE_CODE_MAP: Record<string, string> = {
+  'Ontario': 'ON',
+  'Quebec': 'QC',
+  'British Columbia': 'BC',
+  'Alberta': 'AB',
+  'Manitoba': 'MB',
+  'Saskatchewan': 'SK',
+  'Nova Scotia': 'NS',
+  'New Brunswick': 'NB',
+  'Newfoundland and Labrador': 'NL',
+  'Prince Edward Island': 'PE',
+  'Northwest Territories': 'NT',
+  'Nunavut': 'NU',
+  'Yukon': 'YT'
+};
+
+function toProvinceCode(province?: string): string {
+  if (!province) return '';
+  if (province.length === 2) return province.toUpperCase();
+  return PROVINCE_CODE_MAP[province] || province.slice(0, 2).toUpperCase();
+}
+
+function normalizePostalCode(postalCode?: string): string {
+  if (!postalCode) return '';
+  const cleaned = postalCode.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+  return cleaned.length > 3 ? `${cleaned.slice(0, 3)} ${cleaned.slice(3)}` : cleaned;
+}
 
 export function AddressInput({ value, onChange, label, required }: AddressInputProps) {
   const [searchText, setSearchText] = useState(value.street || value.postalCode || '');
@@ -93,6 +124,7 @@ export function AddressInput({ value, onChange, label, required }: AddressInputP
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [error, setError] = useState<string | null>(null);
   const [activeProvider, setActiveProvider] = useState<'free-api' | 'canada-post' | 'nominatim' | null>(null);
+  const [activeProvider, setActiveProvider] = useState<'canada-post' | 'nominatim' | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
@@ -198,6 +230,48 @@ export function AddressInput({ value, onChange, label, required }: AddressInputP
           setShowSuggestions(false);
         }
       }
+
+    const attemptNominatimFallback = async (message?: string) => {
+      const fallback = await fetchNominatimSuggestions(text);
+      setSuggestions(fallback);
+      setShowSuggestions(fallback.length > 0);
+      setActiveProvider('nominatim');
+      if (message) setError(message);
+    };
+
+    try {
+      if (CANADA_POST_API_KEY) {
+        const url = `https://ws1.postescanada-canadapost.ca/AddressComplete/Interactive/Find/v2.10/json3.ws?Key=${CANADA_POST_API_KEY}&SearchTerm=${encodeURIComponent(text)}&Country=CAN&LanguagePreference=en${lastId ? `&LastId=${lastId}` : ''}`;
+        const response = await fetch(url);
+
+        if (!response.ok) {
+          throw new Error(`Address lookup failed: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const canadaPostSuggestions = (data.Items || []).filter((item: AddressSuggestion) => item.Type !== 'Warning');
+
+        if (canadaPostSuggestions.length > 0) {
+          setSuggestions(canadaPostSuggestions.map((item: AddressSuggestion) => ({ ...item, provider: 'canada-post' })));
+          setShowSuggestions(true);
+          setActiveProvider('canada-post');
+          return;
+        }
+      }
+
+      await attemptNominatimFallback(
+        CANADA_POST_API_KEY
+          ? 'Canada Post returned no matches. Showing fallback suggestions.'
+          : 'Canada Post key not configured. Showing fallback suggestions.'
+      );
+    } catch {
+      try {
+        await attemptNominatimFallback('Canada Post lookup unavailable. Showing fallback suggestions.');
+      } catch {
+        setError('Address lookup unavailable. Please enter manually.');
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -208,6 +282,14 @@ export function AddressInput({ value, onChange, label, required }: AddressInputP
 
     try {
       const data = await retrieveAddressDetails(id);
+      const url = `https://ws1.postescanada-canadapost.ca/AddressComplete/Interactive/Retrieve/v2.10/json3.ws?Key=${CANADA_POST_API_KEY}&Id=${encodeURIComponent(id)}`;
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`Address details failed: ${response.status}`);
+      }
+
+      const data = await response.json();
       if (data.Items && data.Items.length > 0) {
         return data.Items[0] as AddressDetails;
       }
@@ -251,6 +333,8 @@ export function AddressInput({ value, onChange, label, required }: AddressInputP
     if (suggestion.provider === 'nominatim' && suggestion.raw) {
       const nominatim = suggestion.raw as NominatimResult;
       const address = nominatim.address || {};
+    if (suggestion.provider === 'nominatim' && suggestion.raw) {
+      const address = suggestion.raw.address || {};
       const streetParts = [address.house_number, address.road].filter(Boolean);
       const newAddress = {
         street: streetParts.join(' ').trim() || suggestion.Text,
@@ -472,6 +556,7 @@ export function AddressInput({ value, onChange, label, required }: AddressInputP
           : activeProvider === 'nominatim'
             ? 'OpenStreetMap (fallback)'
             : 'Canada Post AddressComplete'}
+        Powered by {activeProvider === 'nominatim' ? 'OpenStreetMap (fallback)' : 'Canada Post AddressComplete'}
       </p>
     </div>
   );

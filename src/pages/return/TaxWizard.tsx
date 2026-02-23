@@ -9,6 +9,21 @@ import { useTaxReturn } from '../../context/TaxReturnContext';
 import { calculateTax, formatCurrency, CURRENT_TAX_YEAR } from '../../domain/tax';
 import { navSections, getNavPath } from './navigationConfig';
 
+// Wealthsimple-style navigation sections
+interface NavSection {
+  id: string;
+  label: string;
+  path: string;
+}
+
+const navSections: NavSection[] = [
+  { id: 'profile', label: 'About you', path: 'profile' },
+  { id: 'income', label: 'Income & forms', path: 'income' },
+  { id: 'deductions', label: 'Deductions & credits', path: 'deductions' },
+  { id: 'review', label: 'Review & optimize', path: 'review' },
+  { id: 'submit', label: 'Submit', path: 'complete' }
+];
+
 export function TaxWizard() {
   const { taxYear } = useParams();
   const location = useLocation();
@@ -276,6 +291,7 @@ function LeftSidebar({ taxYear, currentPath }: { taxYear: number; currentPath: s
     : formOptions;
 
   const isActive = (section: { path: string }) => section.path === currentPath;
+  const isActive = (section: NavItem) => section.path === currentPath;
 
   return (
     <aside style={{
@@ -444,6 +460,52 @@ function LeftSidebar({ taxYear, currentPath }: { taxYear: number; currentPath: s
             </div>
           );
         })}
+        {navSections.map((section) => (
+          <Link
+            key={section.id}
+            to={`/return/${taxYear}/${section.path}`}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              width: '100%',
+              padding: '10px 16px',
+              backgroundColor: isActive(section) ? '#F3F4F6' : 'transparent',
+              border: 'none',
+              borderLeft: isActive(section) ? '3px solid #1F2937' : '3px solid transparent',
+              cursor: 'pointer',
+              fontSize: '14px',
+              color: '#4B5563',
+              textAlign: 'left',
+              textDecoration: 'none',
+              transition: 'all 0.15s'
+            }}
+          >
+            <span style={{ fontWeight: isActive(section) ? 500 : 400 }}>{section.label}</span>
+          </Link>
+        ))}
+
+        {showPartnerLink && (
+          <Link
+            to={`/return/${taxYear}/profile?section=partner`}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              width: '100%',
+              padding: '10px 16px',
+              backgroundColor: currentPath === 'profile' ? '#F9FAFB' : 'transparent',
+              border: 'none',
+              borderLeft: '3px solid #D1D5DB',
+              cursor: 'pointer',
+              fontSize: '13px',
+              color: '#6B7280',
+              textAlign: 'left',
+              textDecoration: 'none'
+            }}
+          >
+            Your Partner
+          </Link>
+        )}
       </nav>
     </aside>
   );
