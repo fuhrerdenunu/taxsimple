@@ -427,7 +427,120 @@ export function ProfilePage() {
           })}
         </div>
       </Section>
-      {/* End of Mad Libs onboarding. The rest is removed. */}
+
+      {/* Spouse / Partner Section - shown when married or common-law */}
+      {showSpouseSection && (
+        <Section title="Your partner's details" subtitle="Since you indicated you are married or in a common-law relationship, let us know if you'd like to file together.">
+          <div ref={partnerSectionRef} id="section-partner">
+            {/* File Together Toggle */}
+            <div style={{
+              padding: '20px', backgroundColor: '#F0FDF4', borderRadius: '12px',
+              border: '1px solid #D1FAE5', marginBottom: '24px',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+            }}>
+              <div>
+                <div style={{ fontSize: '16px', fontWeight: 600, color: '#065F46', marginBottom: '4px' }}>
+                  File together with your partner?
+                </div>
+                <div style={{ fontSize: '14px', color: '#6B7280' }}>
+                  Filing together helps maximize credits and deductions between you and your partner.
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  const currentSpouse = profile.spouse || { firstName: '', lastName: '', sin: '', dateOfBirth: '', netIncome: 0, filingTogether: false };
+                  handleChange('spouse', { ...currentSpouse, filingTogether: !currentSpouse.filingTogether });
+                }}
+                style={{
+                  width: '52px', height: '28px', borderRadius: '14px', border: 'none', cursor: 'pointer',
+                  backgroundColor: profile.spouse?.filingTogether ? '#10B981' : '#D1D5DB',
+                  position: 'relative', transition: 'background-color 0.2s', flexShrink: 0
+                }}
+              >
+                <div style={{
+                  width: '22px', height: '22px', borderRadius: '50%', backgroundColor: 'white',
+                  position: 'absolute', top: '3px',
+                  left: profile.spouse?.filingTogether ? '27px' : '3px',
+                  transition: 'left 0.2s',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                }} />
+              </button>
+            </div>
+
+            {/* Partner details - shown when filing together */}
+            {profile.spouse?.filingTogether && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ padding: '24px', backgroundColor: '#FAFAFA', borderRadius: '12px', border: '1px solid #E5E7EB' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '18px', color: '#374151' }}>My partner's name is</span>
+                    <input
+                      type="text"
+                      placeholder="First Name"
+                      value={profile.spouse?.firstName || ''}
+                      onChange={(e) => handleChange('spouse', { ...profile.spouse!, firstName: e.target.value })}
+                      style={{
+                        padding: '12px 16px', fontSize: '16px', border: 'none', borderBottom: '2px solid #10B981',
+                        backgroundColor: 'transparent', outline: 'none', width: '140px', color: '#10B981', fontWeight: 600
+                      }}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Last Name"
+                      value={profile.spouse?.lastName || ''}
+                      onChange={(e) => handleChange('spouse', { ...profile.spouse!, lastName: e.target.value })}
+                      style={{
+                        padding: '12px 16px', fontSize: '16px', border: 'none', borderBottom: '2px solid #10B981',
+                        backgroundColor: 'transparent', outline: 'none', width: '160px', color: '#10B981', fontWeight: 600
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginTop: '24px' }}>
+                    <span style={{ fontSize: '18px', color: '#374151' }}>Their SIN is</span>
+                    <input
+                      type="text"
+                      placeholder="XXX-XXX-XXX"
+                      value={profile.spouse?.sin || ''}
+                      onChange={(e) => handleChange('spouse', { ...profile.spouse!, sin: formatSIN(e.target.value) })}
+                      style={{
+                        padding: '12px 16px', fontSize: '16px', border: 'none', borderBottom: '2px solid #10B981',
+                        backgroundColor: 'transparent', outline: 'none', width: '180px', color: '#10B981', fontWeight: 600
+                      }}
+                    />
+                    <span style={{ fontSize: '18px', color: '#374151' }}>and their date of birth is</span>
+                    <input
+                      type="date"
+                      value={profile.spouse?.dateOfBirth || ''}
+                      onChange={(e) => handleChange('spouse', { ...profile.spouse!, dateOfBirth: e.target.value })}
+                      style={{
+                        padding: '12px 16px', fontSize: '16px', border: 'none', borderBottom: '2px solid #10B981',
+                        backgroundColor: 'transparent', outline: 'none', color: '#10B981', fontWeight: 600
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginTop: '24px' }}>
+                    <span style={{ fontSize: '18px', color: '#374151' }}>Their net income for 2025 was approximately</span>
+                    <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                      <span style={{ position: 'absolute', left: '16px', fontSize: '16px', color: '#10B981', fontWeight: 600 }}>$</span>
+                      <input
+                        type="number"
+                        placeholder="0.00"
+                        value={profile.spouse?.netIncome || ''}
+                        onChange={(e) => handleChange('spouse', { ...profile.spouse!, netIncome: parseFloat(e.target.value) || 0 })}
+                        style={{
+                          padding: '12px 16px 12px 32px', fontSize: '16px', border: 'none', borderBottom: '2px solid #10B981',
+                          backgroundColor: 'transparent', outline: 'none', width: '180px', color: '#10B981', fontWeight: 600
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </Section>
+      )}
 
       {/* Form Validation Errors */}
       {formErrors.length > 0 && (

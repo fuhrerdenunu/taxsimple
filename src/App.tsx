@@ -16,12 +16,7 @@ import { PrivacyPage } from './pages/PrivacyPage';
 import { TermsPage } from './pages/TermsPage';
 import { SupportPage } from './pages/SupportPage';
 import { TaxWizard } from './pages/return/TaxWizard';
-import { ProfilePage } from './pages/return/ProfilePage';
 import WorkspacePage from './pages/return/WorkspacePage';
-import { IncomePage } from './pages/return/IncomePage';
-import { DeductionsPage } from './pages/return/DeductionsPage';
-import { ReviewPage } from './pages/return/ReviewPage';
-import { CompletePage } from './pages/return/CompletePage';
 
 // Global styles
 const globalStyles = `
@@ -86,6 +81,18 @@ export default function App() {
               }
             />
 
+            {/* Dynamic Workspace (standalone route, outside TaxWizard) */}
+            <Route
+              path="/return/:taxYear/workspace"
+              element={
+                <ProtectedRoute>
+                  <TaxReturnProvider>
+                    <WorkspacePage />
+                  </TaxReturnProvider>
+                </ProtectedRoute>
+              }
+            />
+
             {/* Tax Return Wizard */}
             <Route
               path="/return/:taxYear/*"
@@ -96,15 +103,7 @@ export default function App() {
                   </TaxReturnProvider>
                 </ProtectedRoute>
               }
-            >
-              <Route index element={<Navigate to="profile" replace />} />
-              <Route path="profile" element={<ProfilePage />} />
-              <Route path="workspace" element={<WorkspacePage />} />
-              <Route path="income" element={<IncomePage />} />
-              <Route path="deductions" element={<DeductionsPage />} />
-              <Route path="review" element={<ReviewPage />} />
-              <Route path="complete" element={<CompletePage />} />
-            </Route>
+            />
 
             {/* Catch all - redirect to home */}
             <Route path="*" element={<Navigate to="/" replace />} />

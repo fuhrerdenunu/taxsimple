@@ -68,8 +68,7 @@ export function TaxWizard() {
               fontSize: '40px',
               fontWeight: 400,
               color: '#1F2937',
-              margin: '0 0 32px',
-              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+              margin: '0 0 32px'
             }}>
               {firstName}'s {year} Tax Return
             </h1>
@@ -89,177 +88,231 @@ export function TaxWizard() {
   );
 }
 
+function TaxSimpleLogo({ size = 32 }: { size?: number }) {
+  const iconSize = Math.round(size * 0.625);
+  return (
+    <div style={{
+      width: `${size}px`, height: `${size}px`, backgroundColor: '#0D5F2B',
+      borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center'
+    }}>
+      <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+      </svg>
+    </div>
+  );
+}
+
 function Header({ taxYear, firstName }: { taxYear: number; firstName: string }) {
   const navigate = useNavigate();
+  const { state } = useTaxReturn();
   const [showTaxMenu, setShowTaxMenu] = useState(false);
   const [showReturnMenu, setShowReturnMenu] = useState(false);
   const [showAccountMenu, setShowAccountMenu] = useState(false);
 
+  const isFilingTogether = (state.profile.maritalStatus === 'married' || state.profile.maritalStatus === 'common-law')
+    && state.profile.spouse?.filingTogether;
+  const spouseName = state.profile.spouse?.firstName || 'Partner';
+
+  // Close dropdowns when clicking outside
+  const closeAll = () => { setShowTaxMenu(false); setShowReturnMenu(false); setShowAccountMenu(false); };
+
   return (
-    <header style={{
-      backgroundColor: 'white',
-      borderBottom: '1px solid #E5E7EB',
-      padding: '12px 24px',
-      position: 'sticky',
-      top: 0,
-      zIndex: 100
-    }}>
-      <div style={{
-        maxWidth: '1400px',
-        margin: '0 auto',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between'
+    <>
+      {/* Click-away overlay */}
+      {(showTaxMenu || showReturnMenu || showAccountMenu) && (
+        <div onClick={closeAll} style={{ position: 'fixed', inset: 0, zIndex: 99 }} />
+      )}
+      <header style={{
+        backgroundColor: 'white',
+        borderBottom: '1px solid #E5E7EB',
+        padding: '12px 24px',
+        position: 'sticky',
+        top: 0,
+        zIndex: 100
       }}>
-        {/* Left side */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-          {/* Logo */}
-          <Link to="/dashboard" style={{
-            display: 'flex',
-            alignItems: 'center',
-            textDecoration: 'none'
-          }}>
-            <div style={{
-              width: '32px',
-              height: '32px',
-              backgroundColor: '#1F2937',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              fontSize: '16px',
-              fontWeight: 700
-            }}>
-              W
+        <div style={{
+          maxWidth: '1400px',
+          margin: '0 auto',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}>
+          {/* Left side */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+            {/* Logo */}
+            <Link to="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
+              <TaxSimpleLogo size={32} />
+              <span style={{ fontSize: '18px', fontWeight: 700, color: '#1F2937' }}>TaxSimple</span>
+            </Link>
+
+            <span style={{ color: '#D1D5DB', fontSize: '20px', fontWeight: 300 }}>|</span>
+
+            {/* Tax dropdown */}
+            <div style={{ position: 'relative' }}>
+              <button
+                onClick={() => { closeAll(); setShowTaxMenu(!showTaxMenu); }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '4px', background: 'none',
+                  border: 'none', cursor: 'pointer', fontSize: '15px', fontWeight: 500,
+                  color: '#1F2937', padding: '8px 4px'
+                }}
+              >
+                Tax
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ marginLeft: '2px' }}>
+                  <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+              {showTaxMenu && (
+                <div style={{
+                  position: 'absolute', top: '100%', left: 0, backgroundColor: 'white',
+                  borderRadius: '8px', border: '1px solid #E5E7EB',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.12)', minWidth: '200px', zIndex: 101,
+                  overflow: 'hidden', marginTop: '4px'
+                }}>
+                  <button onClick={() => { navigate(`/return/${taxYear}/profile`); closeAll(); }}
+                    style={{ display: 'block', width: '100%', padding: '12px 16px', border: 'none',
+                      backgroundColor: 'white', textAlign: 'left', cursor: 'pointer', fontSize: '14px', color: '#1F2937' }}
+                    onMouseEnter={e => e.currentTarget.style.backgroundColor = '#F9FAFB'}
+                    onMouseLeave={e => e.currentTarget.style.backgroundColor = 'white'}>
+                    {taxYear} Tax Return
+                  </button>
+                  <button onClick={() => { navigate('/dashboard'); closeAll(); }}
+                    style={{ display: 'block', width: '100%', padding: '12px 16px', border: 'none',
+                      borderTop: '1px solid #F3F4F6', backgroundColor: 'white', textAlign: 'left',
+                      cursor: 'pointer', fontSize: '14px', color: '#6B7280' }}
+                    onMouseEnter={e => e.currentTarget.style.backgroundColor = '#F9FAFB'}
+                    onMouseLeave={e => e.currentTarget.style.backgroundColor = 'white'}>
+                    All Tax Returns
+                  </button>
+                </div>
+              )}
             </div>
-          </Link>
 
-          {/* Tax dropdown */}
-          <div style={{ position: 'relative' }}>
-            <button
-              onClick={() => setShowTaxMenu(!showTaxMenu)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '16px',
-                fontWeight: 500,
-                color: '#1F2937',
-                padding: '8px 0'
-              }}
-            >
-              Tax
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ marginLeft: '4px' }}>
-                <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-          </div>
+            {/* Return name dropdown */}
+            <div style={{ position: 'relative' }}>
+              <button
+                onClick={() => { closeAll(); setShowReturnMenu(!showReturnMenu); }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '4px', background: 'none',
+                  border: 'none', cursor: 'pointer', fontSize: '15px', fontWeight: 500,
+                  color: '#1F2937', padding: '8px 4px'
+                }}
+              >
+                {firstName}'s return
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ marginLeft: '2px' }}>
+                  <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+              {showReturnMenu && (
+                <div style={{
+                  position: 'absolute', top: '100%', left: 0, backgroundColor: 'white',
+                  borderRadius: '8px', border: '1px solid #E5E7EB',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.12)', minWidth: '240px', zIndex: 101,
+                  overflow: 'hidden', marginTop: '4px'
+                }}>
+                  {/* Current user's return - always shown */}
+                  <button onClick={() => closeAll()}
+                    style={{ display: 'flex', width: '100%', padding: '12px 16px', border: 'none',
+                      backgroundColor: '#F0FDF4', textAlign: 'left', cursor: 'pointer',
+                      fontSize: '14px', color: '#065F46', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontWeight: 500 }}>{firstName}'s return</span>
+                    <span style={{ color: '#10B981', fontWeight: 600 }}>&#10003;</span>
+                  </button>
 
-          {/* Return name dropdown */}
-          <div style={{ position: 'relative' }}>
-            <button
-              onClick={() => setShowReturnMenu(!showReturnMenu)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '16px',
-                fontWeight: 500,
-                color: '#1F2937',
-                padding: '8px 0'
-              }}
-            >
-              {firstName}'s return
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ marginLeft: '4px' }}>
-                <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-          </div>
-
-          {/* Saved status */}
-          <span style={{
-            fontSize: '14px',
-            color: '#6B7280'
-          }}>
-            Saved
-          </span>
-        </div>
-
-        {/* Right side */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-          {/* Tax documents */}
-          <button
-            onClick={() => navigate('/dashboard')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              fontSize: '14px',
-              color: '#1F2937',
-              padding: '8px 0'
-            }}
-          >
-            <div style={{
-              width: '24px',
-              height: '24px',
-              backgroundColor: '#1F2937',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              fontSize: '12px',
-              fontWeight: 600
-            }}>
-              W
+                  {/* Partner's return - only if filing together */}
+                  {isFilingTogether ? (
+                    <button onClick={() => { navigate(`/return/${taxYear}/profile?section=partner`); closeAll(); }}
+                      style={{ display: 'flex', width: '100%', padding: '12px 16px', border: 'none',
+                        borderTop: '1px solid #F3F4F6', backgroundColor: 'white', textAlign: 'left',
+                        cursor: 'pointer', fontSize: '14px', color: '#1F2937', alignItems: 'center', justifyContent: 'space-between' }}
+                      onMouseEnter={e => e.currentTarget.style.backgroundColor = '#F9FAFB'}
+                      onMouseLeave={e => e.currentTarget.style.backgroundColor = 'white'}>
+                      <span>{spouseName}'s return</span>
+                    </button>
+                  ) : (
+                    <div style={{ padding: '12px 16px', borderTop: '1px solid #F3F4F6',
+                      fontSize: '13px', color: '#9CA3AF' }}>
+                      {(state.profile.maritalStatus === 'married' || state.profile.maritalStatus === 'common-law')
+                        ? 'Enable "File together" in your profile to add your partner\'s return'
+                        : 'Set your marital status to married or common-law to file with a partner'}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-            Tax documents
-          </button>
 
-          {/* Account dropdown */}
-          <div style={{ position: 'relative' }}>
-            <button
-              onClick={() => setShowAccountMenu(!showAccountMenu)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '14px',
-                color: '#1F2937',
-                padding: '8px 0'
-              }}
-            >
-              Account
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ marginLeft: '4px' }}>
-                <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
+            {/* Saved status */}
+            <span style={{ fontSize: '13px', color: '#10B981', fontWeight: 500 }}>
+              Saved
+            </span>
           </div>
 
-          {/* Help */}
-          <Link to="/support" style={{
-            fontSize: '14px',
-            color: '#1F2937',
-            textDecoration: 'none'
-          }}>
-            Help
-          </Link>
+          {/* Right side */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+            {/* Tax documents */}
+            <button
+              onClick={() => navigate('/dashboard')}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '8px', background: 'none',
+                border: 'none', cursor: 'pointer', fontSize: '14px', color: '#1F2937', padding: '8px 0'
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" />
+                <polyline points="10 9 9 9 8 9" />
+              </svg>
+              Tax documents
+            </button>
+
+            {/* Account dropdown */}
+            <div style={{ position: 'relative' }}>
+              <button
+                onClick={() => { closeAll(); setShowAccountMenu(!showAccountMenu); }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '4px', background: 'none',
+                  border: 'none', cursor: 'pointer', fontSize: '14px', color: '#1F2937', padding: '8px 0'
+                }}
+              >
+                Account
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ marginLeft: '2px' }}>
+                  <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+              {showAccountMenu && (
+                <div style={{
+                  position: 'absolute', top: '100%', right: 0, backgroundColor: 'white',
+                  borderRadius: '8px', border: '1px solid #E5E7EB',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.12)', minWidth: '180px', zIndex: 101,
+                  overflow: 'hidden', marginTop: '4px'
+                }}>
+                  <button onClick={() => { navigate('/dashboard'); closeAll(); }}
+                    style={{ display: 'block', width: '100%', padding: '12px 16px', border: 'none',
+                      backgroundColor: 'white', textAlign: 'left', cursor: 'pointer', fontSize: '14px', color: '#1F2937' }}
+                    onMouseEnter={e => e.currentTarget.style.backgroundColor = '#F9FAFB'}
+                    onMouseLeave={e => e.currentTarget.style.backgroundColor = 'white'}>
+                    Dashboard
+                  </button>
+                  <Link to="/support" onClick={closeAll}
+                    style={{ display: 'block', padding: '12px 16px', borderTop: '1px solid #F3F4F6',
+                      fontSize: '14px', color: '#1F2937', textDecoration: 'none' }}
+                    onMouseEnter={e => e.currentTarget.style.backgroundColor = '#F9FAFB'}
+                    onMouseLeave={e => e.currentTarget.style.backgroundColor = 'white'}>
+                    Help &amp; Support
+                  </Link>
+                </div>
+              )}
+            </div>
+
+            {/* Help */}
+            <Link to="/support" style={{ fontSize: '14px', color: '#1F2937', textDecoration: 'none' }}>
+              Help
+            </Link>
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+    </>
   );
 }
 
