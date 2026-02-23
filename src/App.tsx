@@ -17,6 +17,7 @@ import { TermsPage } from './pages/TermsPage';
 import { SupportPage } from './pages/SupportPage';
 import { TaxWizard } from './pages/return/TaxWizard';
 import { ProfilePage } from './pages/return/ProfilePage';
+import WorkspacePage from './pages/return/WorkspacePage';
 import { IncomePage } from './pages/return/IncomePage';
 import { DeductionsPage } from './pages/return/DeductionsPage';
 import { ReviewPage } from './pages/return/ReviewPage';
@@ -98,6 +99,7 @@ export default function App() {
             >
               <Route index element={<Navigate to="profile" replace />} />
               <Route path="profile" element={<ProfilePage />} />
+              <Route path="workspace" element={<WorkspacePage />} />
               <Route path="income" element={<IncomePage />} />
               <Route path="deductions" element={<DeductionsPage />} />
               <Route path="review" element={<ReviewPage />} />

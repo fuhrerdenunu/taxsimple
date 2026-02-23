@@ -3,10 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useTaxReturn } from '../../context/TaxReturnContext';
 
 // Components
-import Sidebar from '../../components/layout/Sidebar';
-import Header from '../../components/layout/Header';
-import Section from '../../components/ui/Section';
-import IncomeFormGenerator from '../../components/forms/IncomeFormGenerator';
 import FormLibraryModal from './FormLibraryModal';
 
 const WorkspacePage: React.FC = () => {
@@ -47,10 +43,12 @@ const WorkspacePage: React.FC = () => {
 
     return (
         <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#F3F4F6' }}>
-            <Sidebar />
+            {/* Header placeholder */}
+            <div style={{ padding: '8px', backgroundColor: 'white', borderRight: '1px solid #E5E7EB', width: '260px', display: 'none' }} />
 
             <main style={{ flex: 1, padding: '32px 48px', paddingBottom: '120px' }}>
-                <Header />
+                {/* Header Placeholder */}
+                <div style={{ padding: '16px', backgroundColor: 'white', borderBottom: '1px solid #E5E7EB', display: 'none' }} />
 
                 <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
                     {/* Top Info Bar */}
@@ -188,7 +186,10 @@ const WorkspacePage: React.FC = () => {
                         {/* Form Editor Area */}
                         <div>
                             {activeFormType ? (
-                                <IncomeFormGenerator formType={activeFormType} />
+                                <div style={{ backgroundColor: 'white', padding: '32px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                                    <h2 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '24px' }}>{getFormLabel(activeFormType)}</h2>
+                                    <p style={{ color: '#6B7280' }}>This is where the dynamic form fields for {activeFormType.toUpperCase()} will be rendered.</p>
+                                </div>
                             ) : (
                                 <div style={{
                                     backgroundColor: 'white',
