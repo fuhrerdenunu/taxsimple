@@ -7,43 +7,7 @@ import { ReviewPage } from './ReviewPage';
 import { CompletePage } from './CompletePage';
 import { useTaxReturn } from '../../context/TaxReturnContext';
 import { calculateTax, formatCurrency, CURRENT_TAX_YEAR } from '../../domain/tax';
-
-// Wealthsimple-style navigation sections
-interface NavSection {
-  id: string;
-  label: string;
-  path: string;
-  children?: NavSection[];
-  badge?: number;
-}
-
-const navSections: NavSection[] = [
-  { id: 'about', label: 'About you', path: 'profile' },
-  { id: 'autofill', label: 'Auto-fill & add forms', path: 'income' },
-  { id: 'personal', label: 'Personal information', path: 'profile' },
-  {
-    id: 'forms',
-    label: 'Manage tax forms',
-    path: 'income',
-    children: [
-      { id: 'partner', label: 'Your Partner', path: 'profile' },
-      { id: 'trillium', label: 'Trillium Benefit', path: 'deductions' },
-      { id: 'employment', label: 'Employment Expenses', path: 'deductions' },
-      { id: 'rrsp', label: 'RRSP Deduction', path: 'deductions' },
-      { id: 't4', label: 'T4 Slips', path: 'income' },
-      { id: 't4fhsa', label: 'T4FHSA Slips', path: 'income' },
-      { id: 'tuition', label: 'Tuition Amount', path: 'deductions' },
-      { id: 'unused', label: 'Unused Losses', path: 'deductions' },
-      { id: 'carryforwards', label: 'Carryforwards', path: 'deductions' },
-      { id: 'capital', label: 'Capital Gains', path: 'income' },
-      { id: 't5', label: 'T5 Slips', path: 'income' }
-    ]
-  },
-  { id: 'review', label: 'Review & optimize', path: 'review' },
-  { id: 'summary', label: 'Summary', path: 'review' },
-  { id: 'submit', label: 'Submit', path: 'complete' },
-  { id: 'recommendations', label: 'Recommendations', path: 'review', badge: 2 }
-];
+import { navSections, getNavPath, type NavItem } from './navigationConfig';
 
 export function TaxWizard() {
   const { taxYear } = useParams();
@@ -216,27 +180,6 @@ function Header({ taxYear, firstName }: { taxYear: number; firstName: string }) 
 
         {/* Right side */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-          {/* Plan & Upgrade */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <span style={{ fontSize: '14px', color: '#1F2937' }}>
-              Basic
-              <span style={{ color: '#6B7280', marginLeft: '4px' }}>Plan selected</span>
-            </span>
-            <button style={{
-              padding: '8px 24px',
-              backgroundColor: 'white',
-              border: '1px solid #E5E7EB',
-              borderRadius: '24px',
-              fontSize: '14px',
-              fontWeight: 500,
-              color: '#1F2937',
-              cursor: 'pointer',
-              transition: 'all 0.15s'
-            }}>
-              Upgrade
-            </button>
-          </div>
-
           {/* Tax documents */}
           <button
             onClick={() => navigate('/dashboard')}
@@ -307,9 +250,12 @@ function Header({ taxYear, firstName }: { taxYear: number; firstName: string }) 
 }
 
 function LeftSidebar({ taxYear, currentPath }: { taxYear: number; currentPath: string }) {
-  const [expandedSection, setExpandedSection] = useState('forms');
   const [showAddForms, setShowAddForms] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const { state } = useTaxReturn();
+  const showPartnerLink =
+    (state.profile.maritalStatus === 'married' || state.profile.maritalStatus === 'common-law') &&
+    Boolean(state.profile.spouse?.filingTogether);
 
   const formOptions = [
     { id: 't4', name: 'T4 - Employment Income', path: 'income' },
@@ -329,9 +275,7 @@ function LeftSidebar({ taxYear, currentPath }: { taxYear: number; currentPath: s
     ? formOptions.filter(f => f.name.toLowerCase().includes(searchQuery.toLowerCase()))
     : formOptions;
 
-  const isActive = (section: NavSection) => {
-    return section.path === currentPath;
-  };
+  const isActive = (section: NavItem) => section.path === currentPath;
 
   return (
     <aside style={{
@@ -448,47 +392,13 @@ function LeftSidebar({ taxYear, currentPath }: { taxYear: number; currentPath: s
 
       {/* Navigation */}
       <nav>
-        {navSections.map((section) => (
-          <div key={section.id}>
-            {section.children ? (
-              // Expandable section (has children)
-              <button
-                type="button"
-                onClick={() => setExpandedSection(expandedSection === section.id ? '' : section.id)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  width: '100%',
-                  padding: '10px 16px',
-                  backgroundColor: 'transparent',
-                  border: 'none',
-                  borderLeft: '3px solid transparent',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  color: '#4B5563',
-                  textAlign: 'left',
-                  transition: 'all 0.15s'
-                }}
-              >
-                <span>{section.label}</span>
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 12 12"
-                  fill="none"
-                  style={{
-                    transform: expandedSection === section.id ? 'rotate(180deg)' : 'rotate(0)',
-                    transition: 'transform 0.2s'
-                  }}
-                >
-                  <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </button>
-            ) : (
-              // Direct link (no children)
+        {navSections.map((section) => {
+          const children = section.children?.filter((child) => child.id !== 'partner' || showPartnerLink) || [];
+
+          return (
+            <div key={section.id}>
               <Link
-                to={`/return/${taxYear}/${section.path}`}
+                to={getNavPath(taxYear, section)}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -506,49 +416,34 @@ function LeftSidebar({ taxYear, currentPath }: { taxYear: number; currentPath: s
                   transition: 'all 0.15s'
                 }}
               >
-                <span style={{ fontWeight: isActive(section) ? 500 : 400 }}>
-                  {section.label}
-                </span>
-                {section.badge && (
-                  <span style={{
-                    backgroundColor: '#E5E7EB',
-                    borderRadius: '10px',
-                    padding: '2px 8px',
-                    fontSize: '12px',
-                    color: '#6B7280'
-                  }}>
-                    {section.badge}
-                  </span>
-                )}
+                <span style={{ fontWeight: isActive(section) ? 500 : 400 }}>{section.label}</span>
               </Link>
-            )}
 
-            {/* Children */}
-            {section.children && expandedSection === section.id && (
-              <div style={{ marginLeft: '16px' }}>
-                {section.children.map((child) => (
-                  <Link
-                    key={child.id}
-                    to={`/return/${taxYear}/${child.path}`}
-                    style={{
-                      display: 'block',
-                      width: '100%',
-                      padding: '8px 16px',
-                      backgroundColor: 'transparent',
-                      borderLeft: '3px solid transparent',
-                      fontSize: '13px',
-                      color: '#6B7280',
-                      textAlign: 'left',
-                      textDecoration: 'none'
-                    }}
-                  >
-                    {child.label}
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
+              {children.map((child) => (
+                <Link
+                  key={child.id}
+                  to={getNavPath(taxYear, child)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    width: '100%',
+                    padding: '8px 16px 8px 28px',
+                    backgroundColor: child.path === currentPath ? '#F9FAFB' : 'transparent',
+                    border: 'none',
+                    borderLeft: child.path === currentPath ? '3px solid #9CA3AF' : '3px solid transparent',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    color: '#6B7280',
+                    textAlign: 'left',
+                    textDecoration: 'none'
+                  }}
+                >
+                  {child.label}
+                </Link>
+              ))}
+            </div>
+          );
+        })}
       </nav>
     </aside>
   );

@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useTaxReturn } from '../../context/TaxReturnContext';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -20,12 +20,23 @@ const RRSP_LIMITS: Record<number, number> = {
 export function DeductionsPage() {
   const navigate = useNavigate();
   const { taxYear } = useParams();
+  const location = useLocation();
   const { state, dispatch } = useTaxReturn();
   const [showRRSPForm, setShowRRSPForm] = useState(false);
 
   const year = taxYear ? parseInt(taxYear, 10) : 2025;
   const defaultRRSPLimit = RRSP_LIMITS[year] || RRSP_LIMITS[2025];
   const [rrspLimit, setRRSPLimit] = useState(defaultRRSPLimit);
+
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const section = params.get('section');
+    if (!section) return;
+
+    const targetElement = document.getElementById(`section-${section}`);
+    targetElement?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [location.search]);
 
   // Update RRSP limit when year changes
   useMemo(() => {
@@ -50,7 +61,7 @@ export function DeductionsPage() {
       </p>
 
       {/* Deductions */}
-      <Card style={{ marginBottom: '24px' }}>
+      <div id="section-rrsp"><Card style={{ marginBottom: '24px' }}>
         <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: '#1F2937' }}>
           Deductions
         </h2>
@@ -96,13 +107,13 @@ export function DeductionsPage() {
           hint="If you moved 40km+ closer to a new job or school"
         />
 
-        <MoneyInput
+        <div id="section-employment"><MoneyInput
           label="Professional/Union Dues"
           value={state.currentReturn.deductions.union}
           onChange={(value) => handleDeductionChange('union', value)}
           hint="In addition to union dues on T4 (Box 44)"
-        />
-      </Card>
+        /></div>
+      </Card></div>
 
       {/* Credits */}
       <Card style={{ marginBottom: '24px' }}>
@@ -120,12 +131,12 @@ export function DeductionsPage() {
           hint="Receipts from registered charities. 15% credit on first $200, 29% on rest"
         />
 
-        <MoneyInput
+        <div id="section-carryforwards"><MoneyInput
           label="Donation Carry-Forward (From Prior Years)"
           value={state.currentReturn.credits.donationCarryForward || 0}
           onChange={(value) => handleCreditChange('donationCarryForward', value)}
           hint="Unclaimed donations from the past 5 years. Check prior returns or CRA My Account"
-        />
+        /></div>
 
         <MoneyInput
           label="Medical Expenses"
@@ -171,12 +182,12 @@ export function DeductionsPage() {
           />
         </div>
 
-        <MoneyInput
+        <div id="section-tuition"><MoneyInput
           label="Tuition Fees"
           value={state.currentReturn.credits.tuition}
           onChange={(value) => handleCreditChange('tuition', value)}
           hint="From T2202A or TL11 forms"
-        />
+        /></div>
       </Card>
 
       {/* Helpful Tips */}
