@@ -238,6 +238,16 @@ export function ProfilePage() {
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
+    const targetSection = params.get('section');
+
+    if (targetSection === 'partner' && showSpouseSection) {
+      partnerSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+
+    if (targetSection) {
+      const targetElement = document.getElementById(`section-${targetSection}`);
+      targetElement?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     if (params.get('section') === 'partner' && showSpouseSection) {
       partnerSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -908,6 +918,7 @@ export function ProfilePage() {
 
       {/* Spouse Tax Situations (if filing together) */}
       {showSpouseSection && ext.filingForSpouse && (
+        <div ref={partnerSectionRef} id="section-partner">
         <div ref={partnerSectionRef} id="partner-section">
         <Section title="Spouse or Common-Law Partner" dark>
           <div style={{ padding: '0' }}>
