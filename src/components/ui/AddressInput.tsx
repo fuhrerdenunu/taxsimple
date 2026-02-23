@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { findAddressSuggestions, isCanadaPostConfigured, retrieveAddressDetails } from '../../utils/address-complete';
+import { fetchFreeAddressSuggestions, isFreeAddressApiConfigured, type FreeAddressSuggestion } from '../../utils/free-address-autocomplete';
 
 interface AddressSuggestion {
   Id: string;
@@ -6,6 +8,8 @@ interface AddressSuggestion {
   Highlight: string;
   Description: string;
   Type: string;
+  provider?: 'free-api' | 'canada-post' | 'nominatim';
+  raw?: NominatimResult | FreeAddressSuggestion;
 }
 
 interface AddressDetails {
@@ -16,6 +20,22 @@ interface AddressDetails {
   ProvinceCode: string;
   PostalCode: string;
   CountryName: string;
+}
+
+interface NominatimResult {
+  place_id: number;
+  display_name: string;
+  address?: {
+    house_number?: string;
+    road?: string;
+    city?: string;
+    town?: string;
+    village?: string;
+    state?: string;
+    state_code?: string;
+    postcode?: string;
+    country?: string;
+  };
 }
 
 interface AddressInputProps {
@@ -37,95 +57,216 @@ interface AddressInputProps {
   required?: boolean;
 }
 
-// Canada Post AddressComplete API key from environment variables
-const CANADA_POST_API_KEY = process.env.REACT_APP_CANADA_POST_API_KEY || '';
+const PROVINCE_CODE_MAP: Record<string, string> = {
+  'Ontario': 'ON',
+  'Quebec': 'QC',
+  'British Columbia': 'BC',
+  'Alberta': 'AB',
+  'Manitoba': 'MB',
+  'Saskatchewan': 'SK',
+  'Nova Scotia': 'NS',
+  'New Brunswick': 'NB',
+  'Newfoundland and Labrador': 'NL',
+  'Prince Edward Island': 'PE',
+  'Northwest Territories': 'NT',
+  'Nunavut': 'NU',
+  'Yukon': 'YT'
+};
+
+function toProvinceCode(province?: string): string {
+  if (!province) return '';
+  if (province.length === 2) return province.toUpperCase();
+  return PROVINCE_CODE_MAP[province] || province.slice(0, 2).toUpperCase();
+}
+
+function normalizePostalCode(postalCode?: string): string {
+  if (!postalCode) return '';
+  const cleaned = postalCode.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+  return cleaned.length > 3 ? `${cleaned.slice(0, 3)} ${cleaned.slice(3)}` : cleaned;
+}
 
 export function AddressInput({ value, onChange, label, required }: AddressInputProps) {
-  const [searchText, setSearchText] = useState(value.street || '');
+  const [searchText, setSearchText] = useState(value.street || value.postalCode || '');
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [error, setError] = useState<string | null>(null);
+  const [activeProvider, setActiveProvider] = useState<'free-api' | 'canada-post' | 'nominatim' | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
-  // Fetch address suggestions from Canada Post
-  const fetchSuggestions = async (text: string, lastId?: string) => {
-    if (text.length < 3) {
-      setSuggestions([]);
-      return;
+  const fetchNominatimSuggestions = async (text: string) => {
+    const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=8&countrycodes=ca&addressdetails=1&q=${encodeURIComponent(text)}`;
+    const response = await fetch(url, {
+      headers: {
+        Accept: 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Fallback lookup failed: ${response.status}`);
     }
 
-    if (!CANADA_POST_API_KEY) {
-      // Silently fall back to manual entry if no API key configured
+    const data = await response.json() as NominatimResult[];
+    return data.map((item) => ({
+      Id: `osm-${item.place_id}`,
+      Text: item.display_name.split(',').slice(0, 2).join(',').trim(),
+      Highlight: '',
+      Description: item.display_name,
+      Type: 'Address',
+      provider: 'nominatim' as const,
+      raw: item
+    }));
+  };
+
+  const fetchSuggestions = async (text: string, lastId?: string) => {
+    if (text.trim().length < 3) {
       setSuggestions([]);
+      setShowSuggestions(false);
+      setError(null);
       return;
     }
 
     setIsLoading(true);
     setError(null);
+
+    const attemptNominatimFallback = async (message?: string) => {
+      const fallback = await fetchNominatimSuggestions(text);
+      setSuggestions(fallback);
+      setShowSuggestions(fallback.length > 0);
+      setActiveProvider('nominatim');
+      if (message) setError(message);
+    };
+
+    const attemptCanadaPostFallback = async (message?: string) => {
+      if (!isCanadaPostConfigured()) {
+        await attemptNominatimFallback(message || 'Canada Post key not configured. Showing OpenStreetMap suggestions.');
+        return;
+      }
+
+      const data = await findAddressSuggestions(text, lastId);
+      const canadaPostSuggestions = (data.Items || []).filter((item: AddressSuggestion) => item.Type !== 'Warning');
+
+      if (canadaPostSuggestions.length > 0) {
+        setSuggestions(canadaPostSuggestions.map((item: AddressSuggestion) => ({ ...item, provider: 'canada-post' })));
+        setShowSuggestions(true);
+        setActiveProvider('canada-post');
+        if (message) setError(message);
+        return;
+      }
+
+      await attemptNominatimFallback('Canada Post returned no matches. Showing OpenStreetMap suggestions.');
+    };
+
     try {
-      const url = `https://ws1.postescanada-canadapost.ca/AddressComplete/Interactive/Find/v2.10/json3.ws?Key=${CANADA_POST_API_KEY}&SearchTerm=${encodeURIComponent(text)}&Country=CAN&LanguagePreference=en${lastId ? `&LastId=${lastId}` : ''}`;
+      if (isFreeAddressApiConfigured()) {
+        const freeApiSuggestions = await fetchFreeAddressSuggestions(text);
 
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`Address lookup failed: ${response.status}`);
+        if (freeApiSuggestions.length > 0) {
+          setSuggestions(
+            freeApiSuggestions.map((item, index) => ({
+              Id: item.id || `free-${index}`,
+              Text: item.text,
+              Highlight: '',
+              Description: item.description,
+              Type: 'Address',
+              provider: 'free-api' as const,
+              raw: item
+            }))
+          );
+          setShowSuggestions(true);
+          setActiveProvider('free-api');
+          return;
+        }
       }
-      const data = await response.json();
 
-      if (data.Items && data.Items.length > 0) {
-        setSuggestions(data.Items.filter((item: AddressSuggestion) => item.Type !== 'Warning'));
-      } else {
-        setSuggestions([]);
-      }
+      await attemptCanadaPostFallback(
+        isFreeAddressApiConfigured()
+          ? 'Free address API returned no matches. Falling back to Canada Post/OpenStreetMap.'
+          : undefined
+      );
     } catch {
-      setError('Address lookup unavailable. Please enter manually.');
-      setSuggestions([]);
+      try {
+        await attemptCanadaPostFallback('Free address API unavailable. Falling back to Canada Post/OpenStreetMap.');
+      } catch {
+        try {
+          await attemptNominatimFallback('Address providers unavailable. Showing OpenStreetMap suggestions.');
+        } catch {
+          setError('Address lookup unavailable. Please enter manually.');
+          setSuggestions([]);
+          setShowSuggestions(false);
+        }
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Fetch full address details when user selects an address
   const fetchAddressDetails = async (id: string): Promise<AddressDetails | null> => {
-    if (!CANADA_POST_API_KEY) return null;
+    if (!isCanadaPostConfigured()) return null;
 
     try {
-      const url = `https://ws1.postescanada-canadapost.ca/AddressComplete/Interactive/Retrieve/v2.10/json3.ws?Key=${CANADA_POST_API_KEY}&Id=${encodeURIComponent(id)}`;
-
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`Address details failed: ${response.status}`);
-      }
-      const data = await response.json();
-
+      const data = await retrieveAddressDetails(id);
       if (data.Items && data.Items.length > 0) {
-        const address = data.Items[0] as AddressDetails;
-        return address;
+        return data.Items[0] as AddressDetails;
       }
     } catch {
       setError('Could not retrieve address details.');
     }
+
     return null;
   };
 
-  // Debounce search
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (searchText && searchText !== value.street) {
-        fetchSuggestions(searchText);
-        setShowSuggestions(true);
+      const normalizedSearch = searchText.trim();
+      const normalizedStreet = (value.street || '').trim();
+      if (normalizedSearch && normalizedSearch !== normalizedStreet) {
+        fetchSuggestions(normalizedSearch);
       }
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchText]);
+  }, [searchText, value.street]);
 
-  // Handle suggestion selection
   const handleSelect = async (suggestion: AddressSuggestion) => {
+    if (suggestion.provider === 'free-api') {
+      const freeAddress = suggestion.raw as FreeAddressSuggestion | undefined;
+      const newAddress = {
+        street: freeAddress?.street || suggestion.Text,
+        unit: undefined,
+        city: freeAddress?.city || value.city,
+        province: toProvinceCode(freeAddress?.province) || value.province,
+        postalCode: normalizePostalCode(freeAddress?.postalCode) || value.postalCode
+      };
+
+      onChange(newAddress);
+      setSearchText(newAddress.street || suggestion.Text);
+      setShowSuggestions(false);
+      setSuggestions([]);
+      return;
+    }
+
+    if (suggestion.provider === 'nominatim' && suggestion.raw) {
+      const nominatim = suggestion.raw as NominatimResult;
+      const address = nominatim.address || {};
+      const streetParts = [address.house_number, address.road].filter(Boolean);
+      const newAddress = {
+        street: streetParts.join(' ').trim() || suggestion.Text,
+        unit: undefined,
+        city: address.city || address.town || address.village || value.city,
+        province: toProvinceCode(address.state) || value.province,
+        postalCode: normalizePostalCode(address.postcode) || value.postalCode
+      };
+      onChange(newAddress);
+      setSearchText(newAddress.street || suggestion.Description);
+      setShowSuggestions(false);
+      setSuggestions([]);
+      return;
+    }
+
     if (suggestion.Type === 'Address') {
-      // This is a final address, get full details
       const details = await fetchAddressDetails(suggestion.Id);
       if (details) {
         const newAddress = {
@@ -133,20 +274,19 @@ export function AddressInput({ value, onChange, label, required }: AddressInputP
           unit: details.Line2 || undefined,
           city: details.City,
           province: details.ProvinceCode,
-          postalCode: details.PostalCode
+          postalCode: normalizePostalCode(details.PostalCode)
         };
         onChange(newAddress);
         setSearchText(details.Line1);
         setShowSuggestions(false);
         setSuggestions([]);
       }
-    } else {
-      // This is a container (e.g., street name), drill down
-      fetchSuggestions(suggestion.Text, suggestion.Id);
+      return;
     }
+
+    fetchSuggestions(suggestion.Text, suggestion.Id);
   };
 
-  // Keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!showSuggestions || suggestions.length === 0) return;
 
@@ -171,7 +311,6 @@ export function AddressInput({ value, onChange, label, required }: AddressInputP
     }
   };
 
-  // Close suggestions when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (
@@ -191,12 +330,7 @@ export function AddressInput({ value, onChange, label, required }: AddressInputP
   return (
     <div style={{ position: 'relative', marginBottom: '16px' }}>
       {label && (
-        <label style={{
-          display: 'block',
-          fontSize: '12px',
-          color: '#6B7280',
-          marginBottom: '6px'
-        }}>
+        <label style={{ display: 'block', fontSize: '12px', color: '#6B7280', marginBottom: '6px' }}>
           {label}{required && <span style={{ color: '#DC2626' }}>*</span>}
         </label>
       )}
@@ -209,16 +343,17 @@ export function AddressInput({ value, onChange, label, required }: AddressInputP
           onChange={(e) => {
             setSearchText(e.target.value);
             setSelectedIndex(-1);
+            setShowSuggestions(true);
           }}
           onFocus={() => {
             if (suggestions.length > 0) setShowSuggestions(true);
           }}
           onKeyDown={handleKeyDown}
-          placeholder="Start typing your address..."
+          placeholder="Start typing your address or postal code..."
           style={{
             width: '100%',
             padding: '10px 12px',
-            paddingRight: '36px',
+            paddingRight: '44px',
             fontSize: '14px',
             border: '1px solid #E5E7EB',
             borderRadius: '6px',
@@ -226,7 +361,6 @@ export function AddressInput({ value, onChange, label, required }: AddressInputP
           }}
         />
 
-        {/* Loading indicator */}
         {isLoading && (
           <div style={{
             position: 'absolute',
@@ -244,7 +378,6 @@ export function AddressInput({ value, onChange, label, required }: AddressInputP
           </div>
         )}
 
-        {/* Canada Post badge */}
         {!isLoading && (
           <div style={{
             position: 'absolute',
@@ -259,7 +392,10 @@ export function AddressInput({ value, onChange, label, required }: AddressInputP
         )}
       </div>
 
-      {/* Suggestions dropdown */}
+      {error && (
+        <p style={{ fontSize: '11px', color: '#B45309', marginTop: '6px' }}>{error}</p>
+      )}
+
       {showSuggestions && suggestions.length > 0 && (
         <div
           ref={suggestionsRef}
@@ -314,7 +450,6 @@ export function AddressInput({ value, onChange, label, required }: AddressInputP
         </div>
       )}
 
-      {/* Filled address display */}
       {value.city && value.province && (
         <div style={{
           marginTop: '8px',
@@ -332,13 +467,16 @@ export function AddressInput({ value, onChange, label, required }: AddressInputP
       )}
 
       <p style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '4px' }}>
-        Powered by Canada Post AddressComplete
+        Powered by {activeProvider === 'free-api'
+          ? 'Free Canada Address API'
+          : activeProvider === 'nominatim'
+            ? 'OpenStreetMap (fallback)'
+            : 'Canada Post AddressComplete'}
       </p>
     </div>
   );
 }
 
-// Fallback manual address input component (if API not available)
 export function ManualAddressInput({
   value,
   onChange,

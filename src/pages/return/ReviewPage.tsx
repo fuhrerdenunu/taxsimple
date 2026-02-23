@@ -1,8 +1,9 @@
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTaxReturn, Profile, TaxReturn } from '../../context/TaxReturnContext';
-import { calculateTax, formatCurrency } from '../../domain/tax';
+import { calculateTax, formatCurrency, CURRENT_TAX_YEAR } from '../../domain/tax';
 import { validateSIN } from '../../domain/tax/validators/sin';
+import { calculateReadinessScores } from '../../utils/return-readiness';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Alert } from '../../components/ui/Alert';
@@ -17,57 +18,25 @@ interface ValidationIssue {
 function validateReturn(profile: Profile, taxReturn: TaxReturn): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
 
-  // Errors (blocking)
   if (!profile.firstName) {
-    issues.push({
-      id: 'missing-first-name',
-      type: 'error',
-      message: 'First name is required',
-      action: { label: 'Fix', path: 'profile' }
-    });
+    issues.push({ id: 'missing-first-name', type: 'error', message: 'First name is required', action: { label: 'Fix', path: 'profile' } });
   }
   if (!profile.lastName) {
-    issues.push({
-      id: 'missing-last-name',
-      type: 'error',
-      message: 'Last name is required',
-      action: { label: 'Fix', path: 'profile' }
-    });
+    issues.push({ id: 'missing-last-name', type: 'error', message: 'Last name is required', action: { label: 'Fix', path: 'profile' } });
   }
   if (!profile.sin || !validateSIN(profile.sin)) {
-    issues.push({
-      id: 'invalid-sin',
-      type: 'error',
-      message: 'A valid Social Insurance Number is required',
-      action: { label: 'Fix', path: 'profile' }
-    });
+    issues.push({ id: 'invalid-sin', type: 'error', message: 'A valid Social Insurance Number is required', action: { label: 'Fix', path: 'profile' } });
   }
   if (!profile.dateOfBirth) {
-    issues.push({
-      id: 'missing-dob',
-      type: 'error',
-      message: 'Date of birth is required',
-      action: { label: 'Fix', path: 'profile' }
-    });
+    issues.push({ id: 'missing-dob', type: 'error', message: 'Date of birth is required', action: { label: 'Fix', path: 'profile' } });
   }
 
-  // Warnings
   if (taxReturn.slips.length === 0 && taxReturn.otherIncome.selfEmployment === 0) {
-    issues.push({
-      id: 'no-income',
-      type: 'warning',
-      message: 'No income has been reported. Is this correct?',
-      action: { label: 'Add Income', path: 'income' }
-    });
+    issues.push({ id: 'no-income', type: 'warning', message: 'No income has been reported. Is this correct?', action: { label: 'Add Income', path: 'income' } });
   }
 
-  // Suggestions
   if (taxReturn.deductions.rrsp === 0 && taxReturn.deductions.fhsa === 0) {
-    issues.push({
-      id: 'no-rrsp',
-      type: 'suggestion',
-      message: 'Consider RRSP or FHSA contributions to reduce your taxable income'
-    });
+    issues.push({ id: 'no-rrsp', type: 'suggestion', message: 'Consider RRSP or FHSA contributions to reduce your taxable income' });
   }
 
   return issues;
@@ -78,294 +47,141 @@ export function ReviewPage() {
   const { taxYear } = useParams();
   const { state, dispatch, getTaxInput } = useTaxReturn();
 
+  const routeYear = taxYear ? parseInt(taxYear, 10) : CURRENT_TAX_YEAR;
   const taxInput = getTaxInput();
   const taxResult = calculateTax(taxInput);
   const issues = validateReturn(state.profile, state.currentReturn);
+  const readinessScores = calculateReadinessScores(state.profile, state.currentReturn);
 
   const errors = issues.filter(i => i.type === 'error');
   const warnings = issues.filter(i => i.type === 'warning');
   const suggestions = issues.filter(i => i.type === 'suggestion');
-
   const isReady = errors.length === 0;
 
   const handleComplete = () => {
     if (isReady) {
       dispatch({ type: 'SET_STATUS', payload: 'completed' });
-      navigate(`/return/${taxYear}/complete`);
+      navigate(`/return/${routeYear}/complete`);
     }
   };
 
-  const getStatusColor = () => {
-    if (errors.length > 0) return { bg: '#FEE2E2', color: '#991B1B', label: 'Not Ready' };
-    if (warnings.length > 0) return { bg: '#FEF3C7', color: '#92400E', label: 'Review Needed' };
-    return { bg: '#D1FAE5', color: '#065F46', label: 'Ready to File' };
-  };
+  const status = errors.length > 0
+    ? { bg: '#FEE2E2', color: '#991B1B', label: 'Not Ready' }
+    : warnings.length > 0
+      ? { bg: '#FEF3C7', color: '#92400E', label: 'Review Needed' }
+      : { bg: '#D1FAE5', color: '#065F46', label: 'Ready to File' };
 
-  const status = getStatusColor();
+  const taxBreakdown = [
+    { label: 'Federal Tax', value: taxResult.federalTax },
+    { label: `Provincial Tax (${taxResult.provinceName})`, value: taxResult.provincialTax },
+    ...(taxResult.healthPremium > 0 ? [{ label: 'Ontario Health Premium', value: taxResult.healthPremium }] : [])
+  ];
 
   return (
     <div>
       <h1 style={{ fontSize: '24px', fontWeight: 700, marginBottom: '8px', color: '#1F2937' }}>
         Review Your Return
       </h1>
-      <p style={{ fontSize: '15px', color: '#6B7280', marginBottom: '32px' }}>
-        Review your {taxYear} tax return before completing.
+      <p style={{ fontSize: '15px', color: '#6B7280', marginBottom: '24px' }}>
+        Review your {routeYear} tax return before completing.
       </p>
 
-      {/* Readiness Meter */}
+      {(routeYear !== state.currentReturn.year || routeYear !== CURRENT_TAX_YEAR) && (
+        <Alert type="warning" title="Tax year check">
+          You are reviewing year {routeYear}, while your in-progress return is {state.currentReturn.year} and the active engine is {CURRENT_TAX_YEAR}. Confirm that your filing year is correct before completing.
+        </Alert>
+      )}
+
       <Card style={{ marginBottom: '24px', backgroundColor: status.bg }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '50%',
-            backgroundColor: 'white',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            {isReady ? (
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={status.color} strokeWidth="2">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                <polyline points="22 4 12 14.01 9 11.01" />
-              </svg>
-            ) : (
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={status.color} strokeWidth="2">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
-            )}
+          <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {isReady ? '✓' : '!'}
           </div>
           <div>
-            <p style={{ fontWeight: 600, color: status.color, fontSize: '18px' }}>
-              {status.label}
-            </p>
+            <p style={{ fontWeight: 600, color: status.color, fontSize: '18px' }}>{status.label}</p>
             <p style={{ fontSize: '14px', color: status.color, opacity: 0.8 }}>
-              {errors.length > 0 ? `${errors.length} issue(s) to fix` :
-               warnings.length > 0 ? `${warnings.length} warning(s) to review` :
-               'Your return is complete'}
+              {errors.length > 0 ? `${errors.length} issue(s) to fix` : warnings.length > 0 ? `${warnings.length} warning(s) to review` : 'Your return is complete'}
             </p>
           </div>
         </div>
       </Card>
 
-      {/* Issues */}
+      <Card style={{ marginBottom: '24px' }}>
+        <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px', color: '#1F2937' }}>Filing Confidence Dashboard</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
+          {[
+            { label: 'Completeness', value: readinessScores.completeness, tone: '#065F46', bg: '#ECFDF5' },
+            { label: 'Data Confidence', value: readinessScores.dataConfidence, tone: '#1E40AF', bg: '#EFF6FF' },
+            { label: 'Optimization Coverage', value: readinessScores.optimizationCoverage, tone: '#92400E', bg: '#FFFBEB' }
+          ].map((metric) => (
+            <div key={metric.label} style={{ background: metric.bg, borderRadius: '8px', padding: '12px 14px' }}>
+              <p style={{ color: '#6B7280', fontSize: '13px', marginBottom: '4px' }}>{metric.label}</p>
+              <p style={{ color: metric.tone, fontSize: '24px', fontWeight: 700 }}>{metric.value}%</p>
+            </div>
+          ))}
+        </div>
+      </Card>
+
       {issues.length > 0 && (
         <Card style={{ marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px', color: '#1F2937' }}>
-            Issues to Address
-          </h2>
-
-          {errors.map(issue => (
-            <div
-              key={issue.id}
-              onClick={() => issue.action && navigate(`/return/${taxYear}/${issue.action.path}`)}
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '12px 16px',
-                marginBottom: '8px',
-                backgroundColor: '#FEE2E2',
-                borderRadius: '8px',
-                cursor: issue.action ? 'pointer' : 'default',
-                transition: 'transform 0.1s ease, box-shadow 0.1s ease',
-                border: '1px solid #FECACA'
-              }}
-              onMouseEnter={(e) => {
-                if (issue.action) {
-                  e.currentTarget.style.transform = 'translateX(4px)';
-                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateX(0)';
-                e.currentTarget.style.boxShadow = 'none';
-              }}
-              role={issue.action ? 'button' : undefined}
-              tabIndex={issue.action ? 0 : undefined}
-              onKeyDown={(e) => {
-                if (issue.action && (e.key === 'Enter' || e.key === ' ')) {
-                  navigate(`/return/${taxYear}/${issue.action.path}`);
-                }
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="15" y1="9" x2="9" y2="15" />
-                  <line x1="9" y1="9" x2="15" y2="15" />
-                </svg>
-                <span style={{ color: '#991B1B', fontWeight: 500 }}>{issue.message}</span>
-              </div>
-              {issue.action && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#991B1B' }}>
-                  <span style={{ fontSize: '14px' }}>{issue.action.label}</span>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polyline points="9 18 15 12 9 6" />
-                  </svg>
-                </div>
-              )}
-            </div>
-          ))}
-
-          {warnings.map(issue => (
-            <div
-              key={issue.id}
-              onClick={() => issue.action && navigate(`/return/${taxYear}/${issue.action.path}`)}
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '12px 16px',
-                marginBottom: '8px',
-                backgroundColor: '#FEF3C7',
-                borderRadius: '8px',
-                cursor: issue.action ? 'pointer' : 'default',
-                transition: 'transform 0.1s ease, box-shadow 0.1s ease',
-                border: '1px solid #FDE68A'
-              }}
-              onMouseEnter={(e) => {
-                if (issue.action) {
-                  e.currentTarget.style.transform = 'translateX(4px)';
-                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateX(0)';
-                e.currentTarget.style.boxShadow = 'none';
-              }}
-              role={issue.action ? 'button' : undefined}
-              tabIndex={issue.action ? 0 : undefined}
-              onKeyDown={(e) => {
-                if (issue.action && (e.key === 'Enter' || e.key === ' ')) {
-                  navigate(`/return/${taxYear}/${issue.action.path}`);
-                }
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2">
-                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                  <line x1="12" y1="9" x2="12" y2="13" />
-                  <line x1="12" y1="17" x2="12.01" y2="17" />
-                </svg>
-                <span style={{ color: '#92400E', fontWeight: 500 }}>{issue.message}</span>
-              </div>
-              {issue.action && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#92400E' }}>
-                  <span style={{ fontSize: '14px' }}>{issue.action.label}</span>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polyline points="9 18 15 12 9 6" />
-                  </svg>
-                </div>
-              )}
-            </div>
-          ))}
-
-          {suggestions.map(issue => (
-            <div
-              key={issue.id}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                padding: '12px 16px',
-                marginBottom: '8px',
-                backgroundColor: '#EFF6FF',
-                borderRadius: '8px',
-                border: '1px solid #BFDBFE'
-              }}
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="16" x2="12" y2="12" />
-                <line x1="12" y1="8" x2="12.01" y2="8" />
-              </svg>
-              <span style={{ color: '#1E40AF', fontWeight: 500 }}>{issue.message}</span>
+          <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px', color: '#1F2937' }}>Issues to Address</h2>
+          {issues.map((issue) => (
+            <div key={issue.id} style={{ marginBottom: '8px' }}>
+              <button
+                onClick={() => issue.action && navigate(`/return/${routeYear}/${issue.action.path}`)}
+                style={{
+                  width: '100%', textAlign: 'left', border: 'none', borderRadius: '8px', padding: '12px 16px',
+                  cursor: issue.action ? 'pointer' : 'default',
+                  backgroundColor: issue.type === 'error' ? '#FEE2E2' : issue.type === 'warning' ? '#FEF3C7' : '#EFF6FF'
+                }}
+              >
+                <span style={{ fontWeight: 500 }}>{issue.message}</span>
+                {issue.action && <span style={{ marginLeft: '8px', fontSize: '13px' }}>({issue.action.label})</span>}
+              </button>
             </div>
           ))}
         </Card>
       )}
 
-      {/* Tax Summary */}
       <Card style={{ marginBottom: '24px' }}>
-        <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '20px', color: '#1F2937' }}>
-          Tax Summary
-        </h2>
-
+        <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '20px', color: '#1F2937' }}>Tax Summary</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: '#6B7280' }}>Total Income</span>
-            <span style={{ fontWeight: 500 }}>{formatCurrency(taxResult.totalIncome)}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: '#6B7280' }}>Total Deductions</span>
-            <span style={{ fontWeight: 500 }}>-{formatCurrency(taxResult.totalDeductions)}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #E5E7EB', paddingTop: '12px' }}>
-            <span style={{ fontWeight: 500 }}>Taxable Income</span>
-            <span style={{ fontWeight: 600 }}>{formatCurrency(taxResult.taxableIncome)}</span>
-          </div>
-
-          <div style={{ marginTop: '12px' }} />
-
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: '#6B7280' }}>Federal Tax</span>
-            <span style={{ fontWeight: 500 }}>{formatCurrency(taxResult.federalTax)}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: '#6B7280' }}>Provincial Tax ({taxResult.provinceName})</span>
-            <span style={{ fontWeight: 500 }}>{formatCurrency(taxResult.provincialTax)}</span>
-          </div>
-          {taxResult.healthPremium > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: '#6B7280' }}>Ontario Health Premium</span>
-              <span style={{ fontWeight: 500 }}>{formatCurrency(taxResult.healthPremium)}</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#6B7280' }}>Total Income</span><span style={{ fontWeight: 500 }}>{formatCurrency(taxResult.totalIncome)}</span></div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#6B7280' }}>Total Deductions</span><span style={{ fontWeight: 500 }}>-{formatCurrency(taxResult.totalDeductions)}</span></div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #E5E7EB', paddingTop: '12px' }}><span style={{ fontWeight: 500 }}>Taxable Income</span><span style={{ fontWeight: 600 }}>{formatCurrency(taxResult.taxableIncome)}</span></div>
+          {taxBreakdown.map((line) => (
+            <div key={line.label} style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: '#6B7280' }}>{line.label}</span>
+              <span style={{ fontWeight: 500 }}>{formatCurrency(line.value)}</span>
             </div>
-          )}
-          <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #E5E7EB', paddingTop: '12px' }}>
-            <span style={{ fontWeight: 500 }}>Total Tax</span>
-            <span style={{ fontWeight: 600 }}>{formatCurrency(taxResult.totalTax)}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: '#6B7280' }}>Tax Already Paid</span>
-            <span style={{ fontWeight: 500 }}>-{formatCurrency(taxResult.totalWithheld)}</span>
-          </div>
-
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            marginTop: '12px',
-            padding: '16px',
-            backgroundColor: taxResult.isRefund ? '#D1FAE5' : '#FEE2E2',
-            borderRadius: '8px'
-          }}>
-            <span style={{ fontWeight: 600, color: taxResult.isRefund ? '#065F46' : '#991B1B' }}>
-              {taxResult.isRefund ? 'Your Refund' : 'Amount Owing'}
-            </span>
-            <span style={{ fontWeight: 700, fontSize: '20px', color: taxResult.isRefund ? '#065F46' : '#991B1B' }}>
-              {formatCurrency(Math.abs(taxResult.refundOrOwing))}
-            </span>
+          ))}
+          <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #E5E7EB', paddingTop: '12px' }}><span style={{ fontWeight: 500 }}>Total Tax</span><span style={{ fontWeight: 600 }}>{formatCurrency(taxResult.totalTax)}</span></div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#6B7280' }}>Tax Already Paid</span><span style={{ fontWeight: 500 }}>-{formatCurrency(taxResult.totalWithheld)}</span></div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '12px', padding: '16px', backgroundColor: taxResult.isRefund ? '#D1FAE5' : '#FEE2E2', borderRadius: '8px' }}>
+            <span style={{ fontWeight: 600, color: taxResult.isRefund ? '#065F46' : '#991B1B' }}>{taxResult.isRefund ? 'Your Refund' : 'Amount Owing'}</span>
+            <span style={{ fontWeight: 700, fontSize: '20px', color: taxResult.isRefund ? '#065F46' : '#991B1B' }}>{formatCurrency(Math.abs(taxResult.refundOrOwing))}</span>
           </div>
         </div>
       </Card>
 
-      {/* Quebec Notice */}
+      <Card style={{ marginBottom: '24px' }}>
+        <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '14px', color: '#1F2937' }}>Why this number?</h2>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <p style={{ color: '#6B7280', margin: 0 }}>The estimate uses {CURRENT_TAX_YEAR} federal/provincial rules and your selected province ({taxResult.provinceName}).</p>
+          <p style={{ color: '#6B7280', margin: 0 }}>Taxable income = Total income ({formatCurrency(taxResult.totalIncome)}) − Deductions ({formatCurrency(taxResult.totalDeductions)}).</p>
+          <p style={{ color: '#6B7280', margin: 0 }}>Total tax = Federal ({formatCurrency(taxResult.federalTax)}) + Provincial ({formatCurrency(taxResult.provincialTax)}){taxResult.healthPremium > 0 ? ` + Health premium (${formatCurrency(taxResult.healthPremium)})` : ''}.</p>
+        </div>
+      </Card>
+
       {state.profile.province === 'QC' && (
         <Alert type="warning" title="Quebec Residents">
-          This completes your federal return. Remember to file your TP-1 with Revenu Quebec
-          for your provincial taxes.
+          This completes your federal return. Remember to file your TP-1 with Revenu Quebec for your provincial taxes.
         </Alert>
       )}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '32px' }}>
-        <Button variant="secondary" onClick={() => navigate(`/return/${taxYear}/deductions`)}>
-          Back
-        </Button>
-        <Button onClick={handleComplete} disabled={!isReady}>
-          Complete Return
-        </Button>
+        <Button variant="secondary" onClick={() => navigate(`/return/${routeYear}/deductions`)}>Back</Button>
+        <Button onClick={handleComplete} disabled={!isReady}>Complete Return</Button>
       </div>
     </div>
   );
