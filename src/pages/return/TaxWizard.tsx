@@ -4,6 +4,7 @@ import { useTaxReturn, type PersonId } from '../../context/TaxReturnContext';
 
 const REVIEW_STEPS = new Set(['review']);
 const SUBMIT_STEPS = new Set(['complete', 'submit']);
+const PROFILE_STEPS = new Set(['profile']);
 
 export function TaxWizard() {
   const { taxYear } = useParams();
@@ -26,6 +27,9 @@ export function TaxWizard() {
   }, [dispatch, requestedPerson, year]);
 
   let target = 'workspace';
+  if (PROFILE_STEPS.has(last)) {
+    target = 'profile';
+  }
   if (REVIEW_STEPS.has(last)) {
     target = 'review';
   }

@@ -7,6 +7,8 @@ import FormLibraryModal from './FormLibraryModal';
 import { getFormById } from '../../domain/forms/form-registry';
 import { useReturnRouteSync } from './useReturnRouteSync';
 import { tokens } from '../../styles/tokens';
+import { FileUpload } from '../../components/tax/FileUpload';
+import { type ParsedSlipData } from '../../utils/pdf-parser';
 
 function TaxSimpleLogo() {
   return (
@@ -34,6 +36,8 @@ const WorkspacePage: React.FC = () => {
   const { year, personId } = useReturnRouteSync('primary');
   const [activeFormType, setActiveFormType] = useState<string>('t4');
   const [showFormLibrary, setShowFormLibrary] = useState(false);
+  const [showUpload, setShowUpload] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState<string | null>(null);
   const [showTaxMenu, setShowTaxMenu] = useState(false);
   const [showPersonMenu, setShowPersonMenu] = useState(false);
 
@@ -101,6 +105,127 @@ const WorkspacePage: React.FC = () => {
     const alreadyPinned = person.pinnedForms.includes(formId);
     if (!alreadyPinned) {
       dispatch({ type: 'SET_PINNED_FORMS', payload: [...person.pinnedForms, formId] });
+    }
+  };
+
+  const handleParsedUpload = (data: ParsedSlipData) => {
+    const slipId = crypto.randomUUID();
+    setUploadMessage(null);
+
+    switch (data.type) {
+      case 'T4':
+        dispatch({
+          type: 'ADD_SLIP',
+          payload: {
+            id: slipId,
+            type: 'T4',
+            employerName: data.payerName || '',
+            boxes: {
+              14: data.boxes[14] || 0,
+              16: data.boxes[16] || 0,
+              18: data.boxes[18] || 0,
+              22: data.boxes[22] || 0,
+              44: data.boxes[44] || 0
+            }
+          }
+        });
+        handleAddForm('t4');
+        break;
+      case 'T4A':
+        dispatch({
+          type: 'ADD_SLIP',
+          payload: {
+            id: slipId,
+            type: 'T4A',
+            payerName: data.payerName || '',
+            boxes: {
+              16: data.boxes[16] || 0,
+              18: data.boxes[18] || 0,
+              20: data.boxes[20] || 0,
+              22: data.boxes[22] || 0,
+              28: data.boxes[28] || 0
+            }
+          }
+        });
+        handleAddForm('t4a');
+        break;
+      case 'T5':
+        dispatch({
+          type: 'ADD_SLIP',
+          payload: {
+            id: slipId,
+            type: 'T5',
+            payerName: data.payerName || '',
+            boxes: {
+              10: data.boxes[10] || 0,
+              13: data.boxes[13] || 0,
+              24: data.boxes[24] || 0
+            }
+          }
+        });
+        handleAddForm('t5');
+        break;
+      case 'T3':
+        dispatch({
+          type: 'ADD_SLIP',
+          payload: {
+            id: slipId,
+            type: 'T3',
+            payerName: data.payerName || '',
+            boxes: {
+              21: data.boxes[21] || 0,
+              23: data.boxes[23] || 0,
+              32: data.boxes[32] || 0,
+              49: data.boxes[49] || 0
+            }
+          }
+        });
+        handleAddForm('t3');
+        break;
+      case 'T5008':
+        dispatch({
+          type: 'ADD_SLIP',
+          payload: {
+            id: slipId,
+            type: 'T5008',
+            payerName: data.payerName || '',
+            boxes: {
+              20: data.boxes[20] || 0,
+              21: data.boxes[21] || 0
+            }
+          }
+        });
+        handleAddForm('t5008');
+        break;
+      case 'T2202':
+        dispatch({
+          type: 'UPDATE_CREDITS',
+          payload: {
+            tuition: data.boxes.A || data.boxes[1] || 0
+          }
+        });
+        handleAddForm('t2202');
+        break;
+      case 'RL1':
+        dispatch({
+          type: 'ADD_SLIP',
+          payload: {
+            id: slipId,
+            type: 'RL1',
+            employerName: data.payerName || '',
+            boxes: {
+              A: data.boxes.A || 0,
+              B: data.boxes.B || 0,
+              C: data.boxes.C || 0,
+              E: data.boxes.E || 0
+            }
+          }
+        });
+        handleAddForm('rl1');
+        break;
+      default:
+        setUploadMessage(`Uploaded file detected as ${data.type}. We saved parsed data where possible; review before filing.`);
+        break;
     }
   };
 
@@ -391,10 +516,37 @@ const WorkspacePage: React.FC = () => {
               >
                 + Add Form
               </button>
+              <button
+                aria-label="Upload tax form"
+                onClick={() => setShowUpload((v) => !v)}
+                style={{
+                  width: '100%',
+                  marginTop: '8px',
+                  padding: '10px',
+                  borderRadius: '8px',
+                  border: '1px solid #BFDBFE',
+                  backgroundColor: showUpload ? '#EFF6FF' : '#FFFFFF',
+                  color: '#1D4ED8',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 500
+                }}
+              >
+                {showUpload ? 'Hide uploader' : 'Upload tax form'}
+              </button>
             </div>
           </div>
 
           <div>
+            {showUpload && (
+              <div style={{ backgroundColor: 'white', padding: '18px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '12px' }}>
+                <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', color: '#1F2937' }}>Upload tax form</h3>
+                <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: '#6B7280' }}>
+                  Drag and drop a slip (PDF/image) to auto-fill this return. Review required after import.
+                </p>
+                <FileUpload onDataParsed={handleParsedUpload} />
+              </div>
+            )}
             <div style={{ backgroundColor: 'white', padding: '32px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
               <IncomeFormGenerator formType={activeFormType} />
             </div>
@@ -402,6 +554,12 @@ const WorkspacePage: React.FC = () => {
             <div style={{ marginTop: '16px', background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: '10px', padding: '10px 12px', fontSize: '13px', color: '#1D4ED8' }}>
               Upload/imported data creates a draft. Review required before filing.
             </div>
+
+            {uploadMessage && (
+              <div style={{ marginTop: '12px', background: '#FEF3C7', border: '1px solid #FDE68A', borderRadius: '10px', padding: '10px 12px', fontSize: '13px', color: '#92400E' }}>
+                {uploadMessage}
+              </div>
+            )}
 
             {state.saveState.status === 'error' && (
               <div style={{ marginTop: '12px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '10px', padding: '10px 12px', fontSize: '13px', color: '#991B1B' }}>
