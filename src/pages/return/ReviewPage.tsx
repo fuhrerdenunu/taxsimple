@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useTaxReturn, Profile, TaxReturn } from '../../context/TaxReturnContext';
 import { calculateTax, formatCurrency, CURRENT_TAX_YEAR } from '../../domain/tax';
 import { validateSIN } from '../../domain/tax/validators/sin';
@@ -7,6 +7,7 @@ import { calculateReadinessScores } from '../../utils/return-readiness';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Alert } from '../../components/ui/Alert';
+import { useReturnRouteSync } from './useReturnRouteSync';
 
 interface ValidationIssue {
   id: string;
@@ -44,14 +45,14 @@ function validateReturn(profile: Profile, taxReturn: TaxReturn): ValidationIssue
 
 export function ReviewPage() {
   const navigate = useNavigate();
-  const { taxYear } = useParams();
   const { state, dispatch, getTaxInput } = useTaxReturn();
+  const { year: routeYear, personId } = useReturnRouteSync('primary');
 
-  const routeYear = taxYear ? parseInt(taxYear, 10) : CURRENT_TAX_YEAR;
-  const taxInput = getTaxInput();
+  const taxInput = getTaxInput(routeYear, personId);
   const taxResult = calculateTax(taxInput);
   const issues = validateReturn(state.profile, state.currentReturn);
   const readinessScores = calculateReadinessScores(state.profile, state.currentReturn);
+  const unit = state.returnsByYear[routeYear];
 
   const errors = issues.filter(i => i.type === 'error');
   const warnings = issues.filter(i => i.type === 'warning');
@@ -61,7 +62,7 @@ export function ReviewPage() {
   const handleComplete = () => {
     if (isReady) {
       dispatch({ type: 'SET_STATUS', payload: 'completed' });
-      navigate(`/return/${routeYear}/complete`);
+      navigate(`/return/${routeYear}/person/${personId}/submit`);
     }
   };
 
@@ -90,6 +91,29 @@ export function ReviewPage() {
         <Alert type="warning" title="Tax year check">
           You are reviewing year {routeYear}, while your in-progress return is {state.currentReturn.year} and the active engine is {CURRENT_TAX_YEAR}. Confirm that your filing year is correct before completing.
         </Alert>
+      )}
+
+      {unit?.jointOptimization.enabled && (
+        <Card style={{ marginBottom: '24px' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '12px', color: '#1F2937' }}>Joint optimization suggestions</h2>
+          {unit.jointOptimization.recommendations.length === 0 ? (
+            <p style={{ margin: 0, color: '#6B7280', fontSize: '14px' }}>
+              No custom recommendations yet. Continue entering both returns to unlock split optimization.
+            </p>
+          ) : (
+            <div style={{ display: 'grid', gap: '10px' }}>
+              {unit.jointOptimization.recommendations.map((rec) => (
+                <div key={rec.id} style={{ border: '1px solid #E5E7EB', borderRadius: '8px', padding: '10px 12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <strong>{rec.title}</strong>
+                    <span style={{ color: '#065F46', fontWeight: 600 }}>{formatCurrency(rec.impact)}</span>
+                  </div>
+                  <div style={{ color: '#6B7280', fontSize: '13px' }}>{rec.rationale}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
       )}
 
       <Card style={{ marginBottom: '24px', backgroundColor: status.bg }}>
@@ -128,7 +152,7 @@ export function ReviewPage() {
           {issues.map((issue) => (
             <div key={issue.id} style={{ marginBottom: '8px' }}>
               <button
-                onClick={() => issue.action && navigate(`/return/${routeYear}/${issue.action.path}`)}
+                onClick={() => issue.action && navigate(`/return/${routeYear}/person/${personId}/workspace`)}
                 style={{
                   width: '100%', textAlign: 'left', border: 'none', borderRadius: '8px', padding: '12px 16px',
                   cursor: issue.action ? 'pointer' : 'default',
@@ -180,7 +204,7 @@ export function ReviewPage() {
       )}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '32px' }}>
-        <Button variant="secondary" onClick={() => navigate(`/return/${routeYear}/deductions`)}>Back</Button>
+        <Button variant="secondary" onClick={() => navigate(`/return/${routeYear}/person/${personId}/workspace`)}>Back</Button>
         <Button onClick={handleComplete} disabled={!isReady}>Complete Return</Button>
       </div>
     </div>

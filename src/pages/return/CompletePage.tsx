@@ -1,27 +1,52 @@
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useTaxReturn } from '../../context/TaxReturnContext';
+import { useTaxReturn, type PersonId } from '../../context/TaxReturnContext';
 import { calculateTax, formatCurrency, CURRENT_TAX_YEAR } from '../../domain/tax';
 import { generateTaxSummaryPDF, exportTaxDataJSON } from '../../utils/pdf-export';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Alert } from '../../components/ui/Alert';
+import { useReturnRouteSync } from './useReturnRouteSync';
 
 export function CompletePage() {
   const navigate = useNavigate();
-  const { taxYear } = useParams();
-  const { state, getTaxInput } = useTaxReturn();
+  const { taxYear, personId } = useParams();
+  const { state, getTaxInput, dispatch } = useTaxReturn();
+  useReturnRouteSync(personId === 'partner' ? 'partner' : 'primary');
 
-  const taxInput = getTaxInput();
+  const activePerson: PersonId = personId === 'partner' ? 'partner' : 'primary';
+  const taxInput = getTaxInput(undefined, activePerson);
   const taxResult = calculateTax(taxInput);
   const year = taxYear ? parseInt(taxYear, 10) : CURRENT_TAX_YEAR;
 
   const handleDownloadPDF = () => {
     generateTaxSummaryPDF(state.profile, taxResult, year, { maskSIN: true });
+    dispatch({
+      type: 'ADD_FILED_DOCUMENT',
+      payload: {
+        id: crypto.randomUUID(),
+        year,
+        personId: activePerson,
+        title: `${year} Tax Summary`,
+        createdAt: new Date().toISOString(),
+        type: 'pdf'
+      }
+    });
   };
 
   const handleDownloadJSON = () => {
     exportTaxDataJSON(state.profile, state.currentReturn, taxResult);
+    dispatch({
+      type: 'ADD_FILED_DOCUMENT',
+      payload: {
+        id: crypto.randomUUID(),
+        year,
+        personId: activePerson,
+        title: `${year} Tax Data Export`,
+        createdAt: new Date().toISOString(),
+        type: 'json'
+      }
+    });
   };
 
   return (
