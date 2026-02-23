@@ -26,7 +26,7 @@ export function DashboardPage() {
   const handleStartReturn = (year: number) => {
     dispatch({ type: 'CREATE_YEAR_RETURN', payload: year });
     dispatch({ type: 'SET_ACTIVE_PERSON', payload: 'primary' });
-    navigate(`/return/${year}/person/primary/workspace`);
+    navigate(`/return/${year}/person/primary/profile`);
   };
 
   const handleContinueReturn = () => {
@@ -35,7 +35,7 @@ export function DashboardPage() {
 
     // Navigate to appropriate step based on status
     if (status === 'not_started') {
-      navigate(`/return/${year}/person/primary/workspace`);
+      navigate(`/return/${year}/person/primary/profile`);
     } else if (status === 'completed') {
       navigate(`/return/${year}/person/primary/submit`);
     } else {

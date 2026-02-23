@@ -6,6 +6,7 @@ import { Button } from '../../components/ui/Button';
 import { Input, Select, MoneyInput } from '../../components/ui/Input';
 import { AddressInput } from '../../components/ui/AddressInput';
 import { ToggleQuestion, ToggleSwitchCompact } from '../../components/ui/ToggleSwitch';
+import { useReturnRouteSync } from './useReturnRouteSync';
 
 // Clean dropdown-style Yes/No select matching Wealthsimple
 function YesNoSelect({
@@ -155,8 +156,9 @@ function InfoRow({
 
 export function ProfilePage() {
   const navigate = useNavigate();
-  const { taxYear } = useParams();
+  const { taxYear, personId } = useParams();
   const location = useLocation();
+  useReturnRouteSync(personId === 'partner' ? 'partner' : 'primary');
   const year = taxYear ? parseInt(taxYear, 10) : CURRENT_TAX_YEAR;
   const { state, dispatch } = useTaxReturn();
   const { profile } = state;
@@ -233,7 +235,7 @@ export function ProfilePage() {
     } else {
       setFormErrors([]);
 
-      const person = location.search.includes('section=partner') ? 'partner' : 'primary';
+      const person = personId === 'partner' || location.search.includes('section=partner') ? 'partner' : 'primary';
       navigate(`/return/${taxYear}/person/${person}/workspace`);
     }
   };
