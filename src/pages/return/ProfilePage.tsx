@@ -164,53 +164,17 @@ export function ProfilePage() {
   // Extended profile state
   const [ext, setExt] = useState({
     middleName: '',
-    preferredLanguage: 'english',
-    isDeceasedReturn: false,
-    deceasedDate: '',
-    wasResidentAllYear: true,
-    movedProvinces: false,
-    moveDate: '',
-    homeAddressSameAsMailing: true,
-    hasNonCanadianMailingAddress: false,
-    currentProvince: profile.province,
-    firstTimeFiling: false,
-    isCanadianCitizen: true,
-    electionsCanada: false,
-    isRegisteredIndianAct: false,
-    hasForeignPropertyOver100K: false,
-    disposedPrincipalResidence: false,
-    flippedProperty: false,
-    openedFirstFHSA: false,
-    wasInPrison: false,
-    livesOutsideCMA: false,
-    organDonation: false,
-    applyTrillium: true,
-    craOnlineMail: 'already_signed_up',
-    netfileCode: '',
-    maritalStatusChanged: false,
-    hasDependants: false,
-    filingForSpouse: Boolean(profile.spouse?.filingTogether),
-    // Spouse tax situations
-    spouseHasDisability: false,
-    cannotClaimSpouseAmount: false,
-    livedTogetherAllYear: true,
-    livedTogetherDec31: true,
-    supportedWhileApart: true,
-    spouseWasNonResident: false,
-    liveSeparateForMedical: false,
-    transferSpouseAmounts: true,
-    // Trillium details
-    trilliumClaimant: 'me',
-    applyEnergyPropertyCredit: true,
-    applyNorthernCredit: false,
-    rentPaid: 0,
-    propertyTaxPaid: 0,
-    reserveEnergyCosts: 0,
-    longTermCareAmount: 0,
-    isStudentResidence: false,
-    receiveTrilliumJune: false,
-    residenceMonths: 12,
-    landlordName: ''
+    none: false,
+    t4: false,
+    t2125: false,
+    home: false,
+    t2202: false,
+    stocks: false,
+    child: false,
+    t4a: false,
+    donations: false,
+    medical: false,
+    rrsp: false
   });
 
   const handleChange = (field: keyof Profile, value: unknown) => {
@@ -218,7 +182,7 @@ export function ProfilePage() {
   };
 
   const handleExt = (field: keyof typeof ext, value: string | number | boolean) => {
-    setExt(prev => ({ ...prev, [field]: value }));
+    setExt((prev: any) => ({ ...prev, [field]: value }));
   };
 
   const formatSIN = (value: string) => {
@@ -257,20 +221,20 @@ export function ProfilePage() {
     const errors: string[] = [];
     if (!profile.firstName?.trim()) errors.push('First name is required');
     if (!profile.lastName?.trim()) errors.push('Last name is required');
+    if (!profile.dateOfBirth?.trim()) errors.push('Date of birth is required');
     const sinDigits = profile.sin?.replace(/\D/g, '') || '';
     if (sinDigits.length !== 9) errors.push('Valid 9-digit Social Insurance Number is required');
     if (!profile.province) errors.push('Province of residence is required');
-
-    if (ext.filingForSpouse) {
-      if (!profile.spouse?.firstName?.trim()) errors.push('Partner\'s first name is required when filing together');
-    }
+    if (!profile.maritalStatus) errors.push('Marital status is required');
 
     if (errors.length > 0) {
       setFormErrors(errors);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       setFormErrors([]);
-      navigate(`/return/${taxYear}/income`);
+
+      // We will route to the new dynamic workspace page
+      navigate(`/return/${taxYear}/workspace`);
     }
   };
 
@@ -378,26 +342,6 @@ export function ProfilePage() {
         }}>
           <div>
             <label style={{ display: 'block', fontSize: '12px', color: '#6B7280', marginBottom: '6px' }}>
-              Preferred language<span style={{ color: '#DC2626' }}>*</span>
-            </label>
-            <select
-              value={ext.preferredLanguage}
-              onChange={(e) => handleExt('preferredLanguage', e.target.value)}
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                fontSize: '14px',
-                border: '1px solid #E5E7EB',
-                borderRadius: '6px',
-                backgroundColor: 'white'
-              }}
-            >
-              <option value="english">English</option>
-              <option value="french">Français</option>
-            </select>
-          </div>
-          <div>
-            <label style={{ display: 'block', fontSize: '12px', color: '#6B7280', marginBottom: '6px' }}>
               In which <u>province or territory did you live</u> on December 31, {year}?<span style={{ color: '#DC2626' }}>*</span>
             </label>
             <select
@@ -418,13 +362,6 @@ export function ProfilePage() {
             </select>
           </div>
         </div>
-
-        <InfoRow label="Is this return for a deceased person?">
-          <ToggleSwitchCompact
-            value={ext.isDeceasedReturn}
-            onChange={(v) => handleExt('isDeceasedReturn', v)}
-          />
-        </InfoRow>
       </Section>
 
       {/* Life Events Grid (Step 2 of Mad Libs) */}
@@ -490,629 +427,34 @@ export function ProfilePage() {
           })}
         </div>
       </Section>
-            />
-    </InfoRow>
-        </div >
+      {/* End of Mad Libs onboarding. The rest is removed. */}
 
-    {/* About Your Residency */ }
-    < div style = {{
-    padding: '20px',
-      backgroundColor: '#F9FAFB',
-        borderRadius: '8px',
-          marginBottom: '20px'
-  }
-}>
-          <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '16px' }}>About Your Residency</h3>
-
-          <InfoRow label={`Were you a Canadian resident for all of ${year}?`} hint="You are a resident if Canada was your home" required>
-            <ToggleSwitchCompact
-              value={ext.wasResidentAllYear}
-              onChange={(v) => handleExt('wasResidentAllYear', v)}
-            />
-          </InfoRow>
-        </div >
-
-  {/* About Your Province or Territory */ }
-  < div style = {{
-  padding: '20px',
-    backgroundColor: '#F9FAFB',
-      borderRadius: '8px',
-        marginBottom: '20px'
-}}>
-          <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '16px' }}>About Your Province or Territory</h3>
-
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '14px', color: '#374151', marginBottom: '8px' }}>
-              In which <u>province or territory did you live</u> on December 31, {year}?<span style={{ color: '#DC2626' }}>*</span>
-            </label>
-            <select
-              value={profile.province}
-              onChange={(e) => handleChange('province', e.target.value as ProvinceCode)}
-              disabled
-              style={{ padding: '10px 14px', fontSize: '14px', border: '1px solid #E5E7EB', borderRadius: '6px', backgroundColor: '#F3F4F6', color: '#6B7280' }}
-            >
-              {provinceOptions.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
-            </select>
-            <p style={{ fontSize: '12px', color: '#9CA3AF', marginTop: '4px' }}>This question reflects the selection made in the About you section above.</p>
-          </div>
-
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '14px', color: '#374151', marginBottom: '8px' }}>
-              If your province or territory of residence changed in {year}, enter the date of your move
-            </label>
-            <input
-              type="date"
-              value={ext.moveDate}
-              onChange={(e) => handleExt('moveDate', e.target.value)}
-              style={{ padding: '10px 14px', fontSize: '14px', border: '1px solid #E5E7EB', borderRadius: '6px' }}
-            />
-          </div>
-
-          <InfoRow label="Is your home address the same as your mailing address?">
-            <ToggleSwitchCompact
-              value={ext.homeAddressSameAsMailing}
-              onChange={(v) => handleExt('homeAddressSameAsMailing', v)}
-            />
-          </InfoRow>
-
-          <div style={{ marginTop: '16px' }}>
-            <label style={{ display: 'block', fontSize: '14px', color: '#374151', marginBottom: '8px' }}>
-              In which province or territory do you currently live?
-            </label>
-            <select
-              value={ext.currentProvince}
-              onChange={(e) => handleExt('currentProvince', e.target.value)}
-              style={{ padding: '10px 14px', fontSize: '14px', border: '1px solid #E5E7EB', borderRadius: '6px', backgroundColor: 'white' }}
-            >
-              {provinceOptions.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
-            </select>
-          </div>
-        </div >
-
-  {/* You and Your Family */ }
-  < div style = {{
-  padding: '20px',
-    backgroundColor: '#F9FAFB',
-      borderRadius: '8px',
-        marginBottom: '20px'
-}}>
-          <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '16px' }}>You and Your Family</h3>
-
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '14px', color: '#374151', marginBottom: '8px' }}>
-              Marital status on December 31, {year}<span style={{ color: '#DC2626' }}>*</span>
-            </label>
-            <select
-              value={profile.maritalStatus}
-              onChange={(e) => handleChange('maritalStatus', e.target.value)}
-              style={{ padding: '10px 14px', fontSize: '14px', border: '1px solid #E5E7EB', borderRadius: '6px', backgroundColor: 'white' }}
-            >
-              <option value="single">Single</option>
-              <option value="married">Married</option>
-              <option value="common-law">Common-law</option>
-              <option value="separated">Separated</option>
-              <option value="divorced">Divorced</option>
-              <option value="widowed">Widowed</option>
-            </select>
-          </div>
-
-{
-  showSpouseSection && (
-    <>
-      <InfoRow label="Do you want to prepare your returns together?" hint="Filing together can optimize credits">
-        <ToggleSwitchCompact
-          value={ext.filingForSpouse}
-          onChange={(v) => {
-            handleExt('filingForSpouse', v);
-            handleChange('spouse', { ...profile.spouse, filingTogether: v, firstName: profile.spouse?.firstName || '' });
-          }}
-        />
-      </InfoRow>
-
-      {ext.filingForSpouse && (
-        <div style={{ marginBottom: '16px' }}>
-          <label style={{ display: 'block', fontSize: '14px', color: '#374151', marginBottom: '8px' }}>Your partner</label>
-          <input
-            type="text"
-            value={profile.spouse?.firstName || ''}
-            onChange={(e) => handleChange('spouse', { ...profile.spouse, firstName: e.target.value, filingTogether: true })}
-            placeholder="Partner's first name"
-            style={{ padding: '10px 14px', fontSize: '14px', border: '1px solid #E5E7EB', borderRadius: '6px' }}
-          />
-        </div>
-      )}
-    </>
-  )
-}
-
-          <InfoRow label={`Did your marital status change in ${year}?`} required>
-            <ToggleSwitchCompact
-              value={ext.maritalStatusChanged}
-              onChange={(v) => handleExt('maritalStatusChanged', v)}
-            />
-          </InfoRow>
-
-          <InfoRow label="Do you have any dependants?" hint="Children, elderly parents, or disabled relatives you support">
-            <ToggleSwitchCompact
-              value={ext.hasDependants}
-              onChange={(v) => handleExt('hasDependants', v)}
-            />
-          </InfoRow>
-        </div >
-
-  {/* Other stuff we have to ask */ }
-  < div style = {{
-  padding: '20px',
-    backgroundColor: '#F9FAFB',
-      borderRadius: '8px',
-        marginBottom: '20px'
-}}>
-          <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px' }}>Other stuff we have to ask</h3>
-          <p style={{ fontSize: '14px', color: '#6B7280', marginBottom: '16px', fontWeight: 500 }}>General questions</p>
-
-          <InfoRow label="Are you filing an income tax return with the CRA for the first time?" hint="First time filing in Canada">
-            <ToggleSwitchCompact
-              value={ext.firstTimeFiling}
-              onChange={(v) => handleExt('firstTimeFiling', v)}
-            />
-          </InfoRow>
-
-          <InfoRow label="Are you a Canadian citizen?">
-            <ToggleSwitchCompact
-              value={ext.isCanadianCitizen}
-              onChange={(v) => handleExt('isCanadianCitizen', v)}
-            />
-          </InfoRow>
-
-{
-  ext.isCanadianCitizen && (
-    <ToggleQuestion
-      question="As a Canadian citizen, do you authorize the Canada Revenue Agency to give your name, address, date of birth, and citizenship to Elections Canada to update the National Register of Electors or, if you are aged 14 to 17, to update the Register of Future Electors?"
-      description="Your information is protected under the Canada Elections Act"
-      value={ext.electionsCanada}
-      onChange={(v) => handleExt('electionsCanada', v)}
-    />
-  )
-}
-
-          <InfoRow label="Are you a person registered under the Indian Act?" hint="This affects tax exemptions on reserve income">
-            <ToggleSwitchCompact
-              value={ext.isRegisteredIndianAct}
-              onChange={(v) => handleExt('isRegisteredIndianAct', v)}
-            />
-          </InfoRow>
-
-          <h4 style={{ fontSize: '14px', fontWeight: 500, color: '#374151', margin: '20px 0 12px' }}>Property and things you may have invested in</h4>
-
-          <ToggleQuestion
-            question={`Did you own or hold specified foreign property where the total cost amount of all such property, at any time in the year, was more than CAN$100,000 in ${year}?`}
-            description="Includes foreign bank accounts, shares, and real estate"
-            value={ext.hasForeignPropertyOver100K}
-            onChange={(v) => handleExt('hasForeignPropertyOver100K', v)}
-          />
-
-          <InfoRow label={`Did you dispose of your principal residence in ${year}?`} hint="Selling or transferring your main home">
-            <ToggleSwitchCompact
-              value={ext.disposedPrincipalResidence}
-              onChange={(v) => handleExt('disposedPrincipalResidence', v)}
-            />
-          </InfoRow>
-
-          <InfoRow label={`Did you flip a property in ${year}?`} hint="Buying and selling a property within 12 months">
-            <ToggleSwitchCompact
-              value={ext.flippedProperty}
-              onChange={(v) => handleExt('flippedProperty', v)}
-            />
-          </InfoRow>
-
-          <InfoRow
-            label={`Did you open your first First Home Savings Account (FHSA) in ${year}, or become a successor holder in ${year} and did not open another FHSA of your own in ${year - 1} or ${year}?`}
-            hint="FHSA helps first-time home buyers save"
-          >
-            <ToggleSwitchCompact
-              value={ext.openedFirstFHSA}
-              onChange={(v) => handleExt('openedFirstFHSA', v)}
-            />
-          </InfoRow>
-
-          <h4 style={{ fontSize: '14px', fontWeight: 500, color: '#374151', margin: '20px 0 12px' }}>We have to ask because it affects some calculations</h4>
-
-          <InfoRow label={`Were you confined to a prison for a period of 90 days or more in ${year}?`} hint="Affects eligibility for certain credits">
-            <ToggleSwitchCompact
-              value={ext.wasInPrison}
-              onChange={(v) => handleExt('wasInPrison', v)}
-            />
-          </InfoRow>
-        </div >
-
-  {/* Canada Carbon Rebate */ }
-  < div style = {{
-  padding: '20px',
-    backgroundColor: '#F9FAFB',
-      borderRadius: '8px',
-        marginBottom: '20px'
-}}>
-          <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '16px' }}>Canada Carbon Rebate</h3>
-
-          <InfoRow
-            label={`Do you live outside of a census metropolitan area (CMA) or within a rural area or small population centre of the same CMA and expect to continue to do so on April 1, ${year + 1}?`}
-            hint="Rural residents get a 20% supplement"
-            required
-          >
-            <ToggleSwitchCompact
-              value={ext.livesOutsideCMA}
-              onChange={(v) => handleExt('livesOutsideCMA', v)}
-            />
-          </InfoRow>
-        </div >
-
-  {/* Organ and tissue donor registry (Ontario only) */ }
-{
-  isOntario && (
-    <div style={{
-      padding: '20px',
-      backgroundColor: '#F9FAFB',
-      borderRadius: '8px',
-      marginBottom: '20px'
-    }}>
-      <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px' }}>Organ and tissue donor registry</h3>
-      <p style={{ fontSize: '13px', color: '#6B7280', marginBottom: '16px' }}>
-        I authorize the CRA to provide my name and email address Ontario Health so that Ontario Health (Trillium Gift of Life) may contact or send information to me by email about organ and tissue donation.
-      </p>
-      <p style={{ fontSize: '12px', color: '#6B7280', marginBottom: '16px' }}>
-        <strong>Note:</strong> You are <strong>not</strong> consenting to organ and tissue donation when you authorize the CRA to share your contact information with Ontario Health. Your authorization is valid <strong>only</strong> in the tax year that you file this tax return. Your information will only be collected under the Ontario Gift of Life Act.
-      </p>
-
-      <InfoRow label="Do you consent to share your contact information?" required>
-        <ToggleSwitchCompact
-          value={ext.organDonation}
-          onChange={(v) => handleExt('organDonation', v)}
-        />
-      </InfoRow>
-    </div>
-  )
-}
-
-{/* Ontario Trillium Benefit */ }
-{
-  isOntario && (
-    <div style={{
-      padding: '20px',
-      backgroundColor: '#F9FAFB',
-      borderRadius: '8px',
-      marginBottom: '20px'
-    }}>
-      <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '16px' }}>Ontario Trillium Benefit</h3>
-
-      <InfoRow label={`Will you${ext.filingForSpouse ? ` or ${profile.spouse?.firstName || 'your partner'}` : ''} apply for the Ontario Trillium Benefit?`} hint="Combines several Ontario credits">
-        <ToggleSwitchCompact
-          value={ext.applyTrillium}
-          onChange={(v) => handleExt('applyTrillium', v)}
-        />
-      </InfoRow>
-    </div>
-  )
-}
-
-{/* CRA My Account */ }
-<div style={{
-  padding: '20px',
-  backgroundColor: '#F9FAFB',
-  borderRadius: '8px',
-  marginBottom: '20px'
-}}>
-  <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px' }}>CRA My Account</h3>
-  <p style={{ fontSize: '14px', fontWeight: 500, color: '#374151', marginBottom: '12px' }}>Online mail</p>
-
-  <div>
-    <label style={{ display: 'block', fontSize: '14px', color: '#374151', marginBottom: '8px' }}>
-      Do you want to sign up for online mail to get your notice of assessment through CRA My Account?<span style={{ color: '#DC2626' }}>*</span>
-    </label>
-    <select
-      value={ext.craOnlineMail}
-      onChange={(e) => handleExt('craOnlineMail', e.target.value)}
-      style={{ padding: '10px 14px', fontSize: '14px', border: '1px solid #E5E7EB', borderRadius: '6px', backgroundColor: 'white' }}
-    >
-      <option value="not_signed_up">No, I want paper mail</option>
-      <option value="already_signed_up">I'm already signed up</option>
-      <option value="sign_up">Yes, sign me up</option>
-    </select>
-  </div>
-</div>
-      </Section >
-
-  {/* Spouse Tax Situations (if filing together) */ }
-{
-  showSpouseSection && ext.filingForSpouse && (
-    <div ref={partnerSectionRef} id="section-partner">
-      <Section title="Spouse or Common-Law Partner" dark>
-        <div style={{ padding: '0' }}>
-          <h4 style={{ fontSize: '14px', fontWeight: 500, color: 'white', marginBottom: '16px' }}>Tax situations</h4>
-
-          <InfoRow label={`Does ${profile.spouse?.firstName || 'your partner'} have an infirmity or disability?`}>
-            <ToggleSwitchCompact
-              value={ext.spouseHasDisability}
-              onChange={(v) => handleExt('spouseHasDisability', v)}
-            />
-          </InfoRow>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: '1px solid #374151' }}>
-            <input
-              type="checkbox"
-              checked={ext.cannotClaimSpouseAmount}
-              onChange={(e) => handleExt('cannotClaimSpouseAmount', e.target.checked)}
-              style={{ width: '18px', height: '18px' }}
-            />
-            <span style={{ fontSize: '14px', color: '#D1D5DB' }}>
-              Check here if you <strong>can't</strong> claim the <u>amount for partner</u> on line 30300
-            </span>
-          </div>
-
-          <InfoRow label={`Did you live together for all of ${year}?`}>
-            <ToggleSwitchCompact
-              value={ext.livedTogetherAllYear}
-              onChange={(v) => handleExt('livedTogetherAllYear', v)}
-            />
-          </InfoRow>
-
-          <InfoRow label={`Did you live together on December 31, ${year}?`}>
-            <ToggleSwitchCompact
-              value={ext.livedTogetherDec31}
-              onChange={(v) => handleExt('livedTogetherDec31', v)}
-            />
-          </InfoRow>
-
-          <InfoRow label={`While living apart did you support (or were you being supported by) ${profile.spouse?.firstName || 'your partner'}?`}>
-            <ToggleSwitchCompact
-              value={ext.supportedWhileApart}
-              onChange={(v) => handleExt('supportedWhileApart', v)}
-            />
-          </InfoRow>
-
-          <InfoRow label={`Was ${profile.spouse?.firstName || 'your partner'} a non-resident on December 31, ${year}?`}>
-            <ToggleSwitchCompact
-              value={ext.spouseWasNonResident}
-              onChange={(v) => handleExt('spouseWasNonResident', v)}
-            />
-          </InfoRow>
-
-          <InfoRow label="Did you live in separate principal residences for medical reasons?">
-            <ToggleSwitchCompact
-              value={ext.liveSeparateForMedical}
-              onChange={(v) => handleExt('liveSeparateForMedical', v)}
-            />
-          </InfoRow>
-
-          <h4 style={{ fontSize: '14px', fontWeight: 500, color: 'white', margin: '20px 0 12px' }}>Amounts transferred from your partner</h4>
-          <p style={{ fontSize: '13px', color: '#9CA3AF', marginBottom: '12px' }}>
-            We'll automatically transfer {profile.spouse?.firstName || 'your partner'}'s eligible <u>unused amounts</u> to line 32600 of your tax return.
-          </p>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0' }}>
-            <input
-              type="checkbox"
-              checked={!ext.transferSpouseAmounts}
-              onChange={(e) => handleExt('transferSpouseAmounts', !e.target.checked)}
-              style={{ width: '18px', height: '18px' }}
-            />
-            <span style={{ fontSize: '14px', color: '#D1D5DB' }}>
-              Check here if you <strong>don't</strong> want to transfer these amounts
-            </span>
-          </div>
-        </div>
-      </Section>
-    </div>
-  )
-}
-
-{/* Ontario Trillium Benefit Details */ }
-{
-  isOntario && ext.applyTrillium && (
-    <Section title="Ontario Trillium Benefit: Property and Energy Tax Grants and Credits" dark>
-      {ext.filingForSpouse && (
+      {/* Form Validation Errors */}
+      {formErrors.length > 0 && (
         <div style={{
-          padding: '12px 16px',
-          backgroundColor: 'rgba(255,255,255,0.1)',
-          borderRadius: '8px',
-          marginBottom: '20px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px'
+          marginTop: '32px',
+          padding: '16px',
+          backgroundColor: '#FEF2F2',
+          border: '1px solid #F87171',
+          borderRadius: '8px'
         }}>
-          <span style={{ fontSize: '16px' }}>👥</span>
-          <span style={{ fontSize: '13px', color: '#D1D5DB' }}>
-            This section is shared with {profile.spouse?.firstName}. Unless you are living separately for medical purposes, only one of you may claim the Trillium Benefit.
-          </span>
+          <h4 style={{ color: '#991B1B', margin: '0 0 8px 0', fontSize: '14px' }}>Please fix the following before continuing:</h4>
+          <ul style={{ color: '#B91C1C', margin: 0, paddingLeft: '20px', fontSize: '13px' }}>
+            {formErrors.map((err, i) => <li key={i}>{err}</li>)}
+          </ul>
         </div>
       )}
 
-      <div style={{ marginBottom: '16px' }}>
-        <label style={{ display: 'block', fontSize: '14px', color: '#D1D5DB', marginBottom: '8px' }}>Who will claim this credit?</label>
-        <select
-          value={ext.trilliumClaimant}
-          onChange={(e) => handleExt('trilliumClaimant', e.target.value)}
-          style={{ padding: '10px 14px', fontSize: '14px', border: '1px solid #4B5563', borderRadius: '6px', backgroundColor: '#374151', color: 'white' }}
-        >
-          <option value="me">Me</option>
-          {ext.filingForSpouse && <option value="spouse">{profile.spouse?.firstName || 'My partner'}</option>}
-        </select>
-      </div>
-
-      <p style={{ fontSize: '14px', fontWeight: 500, color: 'white', marginBottom: '12px' }}>Apply for the:</p>
-
-      <InfoRow label="Ontario energy and property tax credit">
-        <ToggleSwitchCompact
-          value={ext.applyEnergyPropertyCredit}
-          onChange={(v) => handleExt('applyEnergyPropertyCredit', v)}
-        />
-      </InfoRow>
-
-      <InfoRow label="Northern Ontario energy credit" hint="Only if you lived in Northern Ontario">
-        <ToggleSwitchCompact
-          value={ext.applyNorthernCredit}
-          onChange={(v) => handleExt('applyNorthernCredit', v)}
-        />
-      </InfoRow>
-
-      <h4 style={{ fontSize: '14px', fontWeight: 500, color: 'white', margin: '20px 0 12px' }}>Part A – Amount paid for a principal residence for {year}</h4>
-      <p style={{ fontSize: '13px', color: '#9CA3AF', marginBottom: '16px' }}>If you don't have any of the following amounts please remove this section from your return.</p>
-
-      <div style={{ marginBottom: '16px' }}>
-        <label style={{ display: 'block', fontSize: '14px', color: '#D1D5DB', marginBottom: '8px' }}>
-          Total <u>rent</u> paid for your <u>principal residence</u>
-        </label>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ color: '#9CA3AF' }}>$</span>
-          <input
-            type="number"
-            value={ext.rentPaid || ''}
-            onChange={(e) => handleExt('rentPaid', parseFloat(e.target.value) || 0)}
-            style={{ width: '150px', padding: '10px 14px', fontSize: '14px', border: '1px solid #4B5563', borderRadius: '6px', backgroundColor: '#374151', color: 'white' }}
-          />
-        </div>
-      </div>
-
-      <div style={{ marginBottom: '16px' }}>
-        <label style={{ display: 'block', fontSize: '14px', color: '#D1D5DB', marginBottom: '8px' }}>
-          Total <u>property tax</u> paid for your <u>principal residence</u>
-        </label>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ color: '#9CA3AF' }}>$</span>
-          <input
-            type="number"
-            value={ext.propertyTaxPaid || ''}
-            onChange={(e) => handleExt('propertyTaxPaid', parseFloat(e.target.value) || 0)}
-            style={{ width: '150px', padding: '10px 14px', fontSize: '14px', border: '1px solid #4B5563', borderRadius: '6px', backgroundColor: '#374151', color: 'white' }}
-          />
-        </div>
-      </div>
-
-      <div style={{ marginBottom: '16px' }}>
-        <label style={{ display: 'block', fontSize: '14px', color: '#D1D5DB', marginBottom: '8px' }}>
-          If your <u>principal residence</u> is <strong>on a reserve</strong>, enter your <u>home energy costs</u> paid
-        </label>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ color: '#9CA3AF' }}>$</span>
-          <input
-            type="number"
-            value={ext.reserveEnergyCosts || ''}
-            onChange={(e) => handleExt('reserveEnergyCosts', parseFloat(e.target.value) || 0)}
-            style={{ width: '150px', padding: '10px 14px', fontSize: '14px', border: '1px solid #4B5563', borderRadius: '6px', backgroundColor: '#374151', color: 'white' }}
-          />
-        </div>
-      </div>
-
-      <div style={{ marginBottom: '16px' }}>
-        <label style={{ display: 'block', fontSize: '14px', color: '#D1D5DB', marginBottom: '8px' }}>
-          Amount paid for accommodation in a <u>public or not-for-profit long-term care home</u>
-        </label>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ color: '#9CA3AF' }}>$</span>
-          <input
-            type="number"
-            value={ext.longTermCareAmount || ''}
-            onChange={(e) => handleExt('longTermCareAmount', parseFloat(e.target.value) || 0)}
-            style={{ width: '150px', padding: '10px 14px', fontSize: '14px', border: '1px solid #4B5563', borderRadius: '6px', backgroundColor: '#374151', color: 'white' }}
-          />
-        </div>
-      </div>
-
-      <InfoRow label="Did you reside in a student residence?">
-        <ToggleSwitchCompact
-          value={ext.isStudentResidence}
-          onChange={(v) => handleExt('isStudentResidence', v)}
-        />
-      </InfoRow>
-
-      <InfoRow label={`Would you like to receive your benefit in June ${year + 2} instead of receiving it monthly starting in July ${year + 1}?`}>
-        <ToggleSwitchCompact
-          value={ext.receiveTrilliumJune}
-          onChange={(v) => handleExt('receiveTrilliumJune', v)}
-        />
-      </InfoRow>
-
-      <h4 style={{ fontSize: '14px', fontWeight: 500, color: 'white', margin: '20px 0 12px' }}>Part B – Declaration of principal residence(s)</h4>
-
+      {/* Continue Button */}
       <div style={{
-        backgroundColor: '#374151',
-        borderRadius: '8px',
-        padding: '16px',
-        marginBottom: '12px'
-      }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 80px 1fr 1fr', gap: '12px', fontSize: '12px', color: '#9CA3AF', marginBottom: '12px' }}>
-          <span>Address</span>
-          <span>Postal code</span>
-          <span>Number of months resident in {year}</span>
-          <span>Long-term care home</span>
-          <span>Amount paid for {year} ?</span>
-          <span>Landlord or municipality</span>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 80px 1fr 1fr', gap: '12px', alignItems: 'center' }}>
-          <span style={{ fontSize: '14px', color: 'white' }}>{profile.address}, {profile.city}</span>
-          <span style={{ fontSize: '14px', color: 'white' }}>{profile.postalCode}</span>
-          <input
-            type="number"
-            value={ext.residenceMonths}
-            onChange={(e) => handleExt('residenceMonths', parseInt(e.target.value) || 0)}
-            style={{ width: '60px', padding: '6px 8px', fontSize: '14px', border: '1px solid #4B5563', borderRadius: '4px', backgroundColor: '#1F2937', color: 'white' }}
-          />
-          <input type="checkbox" style={{ width: '18px', height: '18px' }} />
-          <span style={{ fontSize: '14px', color: 'white' }}>${(ext.rentPaid + ext.propertyTaxPaid).toLocaleString()}</span>
-          <input
-            type="text"
-            value={ext.landlordName}
-            onChange={(e) => handleExt('landlordName', e.target.value)}
-            placeholder="Name"
-            style={{ padding: '6px 8px', fontSize: '14px', border: '1px solid #4B5563', borderRadius: '4px', backgroundColor: '#1F2937', color: 'white' }}
-          />
-        </div>
-      </div>
-
-      <button style={{
         display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
-        padding: '8px 0',
-        backgroundColor: 'transparent',
-        border: 'none',
-        color: '#9CA3AF',
-        fontSize: '14px',
-        cursor: 'pointer'
+        justifyContent: 'flex-end',
+        marginTop: '32px'
       }}>
-        + Add another address
-      </button>
-    </Section>
-  )
-}
-
-{/* Form Validation Errors */ }
-{
-  formErrors.length > 0 && (
-    <div style={{
-      marginTop: '32px',
-      padding: '16px',
-      backgroundColor: '#FEF2F2',
-      border: '1px solid #F87171',
-      borderRadius: '8px'
-    }}>
-      <h4 style={{ color: '#991B1B', margin: '0 0 8px 0', fontSize: '14px' }}>Please fix the following before continuing:</h4>
-      <ul style={{ color: '#B91C1C', margin: 0, paddingLeft: '20px', fontSize: '13px' }}>
-        {formErrors.map((err, i) => <li key={i}>{err}</li>)}
-      </ul>
+        <Button onClick={handleContinue} size="lg">
+          Continue to Workspace
+        </Button>
+      </div>
     </div>
-  )
-}
-
-{/* Continue Button */ }
-<div style={{
-  display: 'flex',
-  justifyContent: 'flex-end',
-  marginTop: '32px'
-}}>
-  <Button onClick={handleContinue} size="lg">
-    Continue to Income
-  </Button>
-</div>
-    </div >
   );
 }
