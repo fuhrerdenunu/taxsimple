@@ -215,6 +215,10 @@ const result = calculateTax({
 }
 ```
 
+## Product Readiness Roadmap
+
+See detailed recommendations in [`docs/READINESS_RECOMMENDATIONS.md`](./docs/READINESS_RECOMMENDATIONS.md).
+
 ## Contributing
 
 We welcome contributions! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
