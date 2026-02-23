@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { Alert } from '../ui/Alert';
-import { parseSlipFromPDF, ParsedSlipData } from '../../utils/pdf-parser';
+import { parseSlipFromDocument, ParsedSlipData } from '../../utils/pdf-parser';
 import { classifySlip } from '../../utils/slip-classifier';
 import { validateAndNormalize, type NormalizedSlipData } from '../../utils/slip-validator';
 import { scanForViruses, validateFileType, MAX_FILE_SIZE_BYTES } from '../../utils/file-intake';
@@ -48,13 +48,9 @@ export function FileUpload({ onDataParsed, acceptedTypes = ['.pdf', '.png', '.jp
         throw new Error(virusScan.details);
       }
 
-      // Step 4: Parse the document (PDF only for now, images need OCR integration)
+      // Step 4: Parse the document
       setProcessingStep('Extracting document text...');
-      if (!file.name.toLowerCase().endsWith('.pdf')) {
-        throw new Error('Image file support requires OCR integration. Please upload a PDF file, or enter values manually.');
-      }
-
-      const data = await parseSlipFromPDF(file);
+      const data = await parseSlipFromDocument(file);
 
       // Step 5: Run ML-style classification for confidence scoring
       setProcessingStep('Classifying slip type...');
@@ -66,7 +62,7 @@ export function FileUpload({ onDataParsed, acceptedTypes = ['.pdf', '.png', '.jp
             data.type = classification.type;
           }
           data.confidence = classification.confidence >= 0.7 ? 'high' :
-                            classification.confidence >= 0.4 ? 'medium' : 'low';
+            classification.confidence >= 0.4 ? 'medium' : 'low';
         }
       }
 
@@ -91,7 +87,7 @@ export function FileUpload({ onDataParsed, acceptedTypes = ['.pdf', '.png', '.jp
 
       const boxCount = Object.keys(data.boxes).length;
       const confidenceLabel = data.confidence === 'high' ? 'High confidence' :
-                              data.confidence === 'medium' ? 'Medium confidence' : 'Low confidence';
+        data.confidence === 'medium' ? 'Medium confidence' : 'Low confidence';
       setSuccessMessage(
         `Detected ${data.type} slip${data.payerName ? ` from ${data.payerName}` : ''}. Found ${boxCount} value${boxCount !== 1 ? 's' : ''} (${confidenceLabel}). Please verify the extracted information.`
       );

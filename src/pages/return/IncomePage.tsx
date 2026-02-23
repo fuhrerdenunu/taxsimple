@@ -76,6 +76,7 @@ export function IncomePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showFormSearch, setShowFormSearch] = useState(false);
+  const [showUploadPrompt, setShowUploadPrompt] = useState(false);
   const [notification, setNotification] = useState<{ type: 'info' | 'success' | 'warning'; message: string } | null>(null);
 
   const t4Slips = state.currentReturn.slips.filter(s => s.type === 'T4') as T4Slip[];
@@ -94,11 +95,13 @@ export function IncomePage() {
       boxes: {}
     });
     setActiveForm('t4');
+    setShowUploadPrompt(true);
   };
 
   const handleEditT4 = (slip: T4Slip) => {
     setEditingSlip({ ...slip });
     setActiveForm('t4');
+    setShowUploadPrompt(false);
   };
 
   const handleSaveT4 = () => {
@@ -122,11 +125,13 @@ export function IncomePage() {
       boxes: {}
     });
     setActiveForm('t4a');
+    setShowUploadPrompt(true);
   };
 
   const handleEditT4A = (slip: T4ASlip) => {
     setEditingSlip({ ...slip });
     setActiveForm('t4a');
+    setShowUploadPrompt(false);
   };
 
   // T5 Handlers
@@ -138,11 +143,13 @@ export function IncomePage() {
       boxes: {}
     });
     setActiveForm('t5');
+    setShowUploadPrompt(true);
   };
 
   const handleEditT5 = (slip: T5Slip) => {
     setEditingSlip({ ...slip });
     setActiveForm('t5');
+    setShowUploadPrompt(false);
   };
 
   // T2125 Handlers
@@ -905,29 +912,62 @@ export function IncomePage() {
             <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '20px' }}>
               {t4Slips.find(s => s.id === editingSlip.id) ? 'Edit T4' : 'Add T4'}
             </h3>
-            <Input label="Employer Name" value={editingSlip.employerName} onChange={(e) => setEditingSlip({ ...editingSlip, employerName: e.target.value })} placeholder="ABC Company Inc." />
-            <MoneyInput label="Box 14 - Employment Income" value={editingSlip.boxes[14] || 0} onChange={(value) => setEditingSlip({ ...editingSlip, boxes: { ...editingSlip.boxes, 14: value } })} />
-            <MoneyInput label="Box 16 - CPP Contributions" value={editingSlip.boxes[16] || 0} onChange={(value) => setEditingSlip({ ...editingSlip, boxes: { ...editingSlip.boxes, 16: value } })} />
-            <MoneyInput label="Box 18 - EI Premiums" value={editingSlip.boxes[18] || 0} onChange={(value) => setEditingSlip({ ...editingSlip, boxes: { ...editingSlip.boxes, 18: value } })} />
-            <MoneyInput label="Box 22 - Income Tax Deducted" value={editingSlip.boxes[22] || 0} onChange={(value) => setEditingSlip({ ...editingSlip, boxes: { ...editingSlip.boxes, 22: value } })} />
-            <MoneyInput label="Box 44 - Union Dues" value={editingSlip.boxes[44] || 0} onChange={(value) => setEditingSlip({ ...editingSlip, boxes: { ...editingSlip.boxes, 44: value } })} />
-            <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-              <Button variant="secondary" onClick={() => { setActiveForm('none'); setEditingSlip(null); }}>Cancel</Button>
-              <Button onClick={handleSaveT4}>Save T4</Button>
-            </div>
+            {showUploadPrompt ? (
+              <div style={{ padding: '16px 0' }}>
+                <FileUpload onDataParsed={(data) => {
+                  handleParsedData(data);
+                  setShowUploadPrompt(false);
+                }} />
+                <div style={{ textAlign: 'center', marginTop: '16px' }}>
+                  <Button variant="secondary" onClick={() => setShowUploadPrompt(false)}>
+                    Enter Details Manually
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <Input label="Employer Name" value={editingSlip.employerName} onChange={(e) => setEditingSlip({ ...editingSlip, employerName: e.target.value })} placeholder="ABC Company Inc." />
+                <MoneyInput label="Box 14 - Employment Income" value={editingSlip.boxes[14] || 0} onChange={(value) => setEditingSlip({ ...editingSlip, boxes: { ...editingSlip.boxes, 14: value } })} />
+                <MoneyInput label="Box 16 - CPP Contributions" value={editingSlip.boxes[16] || 0} onChange={(value) => setEditingSlip({ ...editingSlip, boxes: { ...editingSlip.boxes, 16: value } })} />
+                <MoneyInput label="Box 18 - EI Premiums" value={editingSlip.boxes[18] || 0} onChange={(value) => setEditingSlip({ ...editingSlip, boxes: { ...editingSlip.boxes, 18: value } })} />
+                <MoneyInput label="Box 22 - Income Tax Deducted" value={editingSlip.boxes[22] || 0} onChange={(value) => setEditingSlip({ ...editingSlip, boxes: { ...editingSlip.boxes, 22: value } })} />
+                <MoneyInput label="Box 44 - Union Dues" value={editingSlip.boxes[44] || 0} onChange={(value) => setEditingSlip({ ...editingSlip, boxes: { ...editingSlip.boxes, 44: value } })} />
+                <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+                  <Button variant="secondary" onClick={() => { setActiveForm('none'); setEditingSlip(null); }}>Cancel</Button>
+                  <Button onClick={handleSaveT4}>Save T4</Button>
+                </div>
+              </>
+            )}
           </Card>
         </div>
       )}
 
       {/* T4A Form Modal */}
       {activeForm === 't4a' && editingSlip && editingSlip.type === 'T4A' && (
-        <T4AForm
-          slip={editingSlip}
-          onChange={setEditingSlip}
-          onSave={handleSaveSlip}
-          onCancel={() => { setActiveForm('none'); setEditingSlip(null); }}
-          isEditing={!!t4aSlips.find(s => s.id === editingSlip.id)}
-        />
+        showUploadPrompt ? (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '24px' }}>
+            <Card style={{ maxWidth: '500px', width: '100%' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '20px' }}>Add T4A</h3>
+              <FileUpload onDataParsed={(data) => {
+                handleParsedData(data);
+                setShowUploadPrompt(false);
+              }} />
+              <div style={{ textAlign: 'center', marginTop: '16px' }}>
+                <Button variant="secondary" onClick={() => setShowUploadPrompt(false)}>
+                  Enter Details Manually
+                </Button>
+              </div>
+            </Card>
+          </div>
+        ) : (
+          <T4AForm
+            slip={editingSlip}
+            onChange={setEditingSlip}
+            onSave={handleSaveSlip}
+            onCancel={() => { setActiveForm('none'); setEditingSlip(null); }}
+            isEditing={!!t4aSlips.find(s => s.id === editingSlip.id)}
+          />
+        )
       )}
 
       {/* T2125 Form Modal */}
@@ -943,13 +983,30 @@ export function IncomePage() {
 
       {/* T5 Form Modal */}
       {activeForm === 't5' && editingSlip && editingSlip.type === 'T5' && (
-        <T5Form
-          slip={editingSlip}
-          onChange={setEditingSlip}
-          onSave={handleSaveSlip}
-          onCancel={() => { setActiveForm('none'); setEditingSlip(null); }}
-          isEditing={!!t5Slips.find(s => s.id === editingSlip.id)}
-        />
+        showUploadPrompt ? (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '24px' }}>
+            <Card style={{ maxWidth: '500px', width: '100%' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '20px' }}>Add T5</h3>
+              <FileUpload onDataParsed={(data) => {
+                handleParsedData(data);
+                setShowUploadPrompt(false);
+              }} />
+              <div style={{ textAlign: 'center', marginTop: '16px' }}>
+                <Button variant="secondary" onClick={() => setShowUploadPrompt(false)}>
+                  Enter Details Manually
+                </Button>
+              </div>
+            </Card>
+          </div>
+        ) : (
+          <T5Form
+            slip={editingSlip}
+            onChange={setEditingSlip}
+            onSave={handleSaveSlip}
+            onCancel={() => { setActiveForm('none'); setEditingSlip(null); }}
+            isEditing={!!t5Slips.find(s => s.id === editingSlip.id)}
+          />
+        )
       )}
 
       {/* Capital Gains Form Modal */}

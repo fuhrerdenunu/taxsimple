@@ -1,4 +1,5 @@
 import * as pdfjsLib from 'pdfjs-dist';
+import Tesseract from 'tesseract.js';
 
 // Set up the worker for pdfjs-dist v3.x
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
@@ -128,8 +129,8 @@ const detectDocumentType = (text: string): SlipType => {
   // T4 is most common - check last with multiple indicators
   // Must have T4 form number OR typical T4 content
   if (/\bT4\b/.test(upperText) ||
-      upperText.includes('STATEMENT OF REMUNERATION PAID') ||
-      (upperText.includes('EMPLOYMENT INCOME') && upperText.includes('CPP') && upperText.includes('EI'))) {
+    upperText.includes('STATEMENT OF REMUNERATION PAID') ||
+    (upperText.includes('EMPLOYMENT INCOME') && upperText.includes('CPP') && upperText.includes('EI'))) {
     return 'T4';
   }
 
@@ -373,7 +374,23 @@ export const extractTextFromPDF = async (file: File): Promise<string> => {
 
 // Main function to parse any tax slip from PDF
 export const parseSlipFromPDF = async (file: File): Promise<ParsedSlipData> => {
-  const text = await extractTextFromPDF(file);
+  return parseSlipFromDocument(file);
+};
+
+// Extract text from Image file using OCR
+export const extractTextFromImage = async (file: File): Promise<string> => {
+  try {
+    const result = await Tesseract.recognize(file, 'eng');
+    return result.data.text;
+  } catch {
+    throw new Error('Failed to parse image with OCR. Please ensure the file is clear and readable.');
+  }
+};
+
+// Main function to parse any tax slip from a document (PDF or Image)
+export const parseSlipFromDocument = async (file: File): Promise<ParsedSlipData> => {
+  const isImage = file.type.startsWith('image/') || file.name.match(/\.(jpg|jpeg|png|tiff|tif)$/i);
+  const text = isImage ? await extractTextFromImage(file) : await extractTextFromPDF(file);
   return parseSlipText(text);
 };
 
