@@ -404,7 +404,7 @@ export function DashboardPage() {
   const person = activeUnit?.primary;
   const hasProfile = Boolean(person?.profile.firstName);
   const hasIncome = (person?.taxData.slips?.length ?? 0) > 0;
-  const hasDeductions = (person?.taxData.deductions?.rrsp ?? 0) > 0 || (person?.taxData.deductions?.childCare ?? 0) > 0;
+  const hasDeductions = (person?.taxData.deductions?.rrsp ?? 0) > 0 || (person?.taxData.deductions?.childcare ?? 0) > 0;
   const progressStep = !hasProfile ? 0 : !hasIncome ? 1 : !hasDeductions ? 2 : activeStatus === 'ready_to_review' || activeStatus === 'completed' ? 3 : 2;
 
   // Tax calc
