@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useTaxReturn, T4Slip, T4ASlip, T4RSPSlip, T5Slip, T2125Data, CapitalGainsTransaction, IncomeSlip } from '../../context/TaxReturnContext';
 import { formatCurrency } from '../../domain/tax';
 import { Button } from '../../components/ui/Button';
@@ -70,7 +70,6 @@ const FORM_CATEGORIES = {
 export function IncomePage() {
   const navigate = useNavigate();
   const { taxYear } = useParams();
-  const location = useLocation();
   const { state, dispatch } = useTaxReturn();
   const [activeForm, setActiveForm] = useState<ActiveForm>('none');
   const [editingSlip, setEditingSlip] = useState<IncomeSlip | null>(null);
@@ -85,15 +84,6 @@ export function IncomePage() {
   const t2125Data = state.currentReturn.slips.filter(s => s.type === 'T2125') as T2125Data[];
   const capitalGainsTransactions = state.currentReturn.slips.filter(s => s.type === 'CapitalGains') as CapitalGainsTransaction[];
   const [editingCapitalGains, setEditingCapitalGains] = useState<CapitalGainsTransaction | null>(null);
-
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const section = params.get('section');
-    if (!section) return;
-
-    const targetElement = document.getElementById(`section-${section}`);
-    targetElement?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, [location.search]);
 
   // T4 Handlers
   const handleAddT4 = () => {
@@ -626,7 +616,7 @@ export function IncomePage() {
       <Card style={{ marginBottom: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <div>
-            <h2 id="section-t4" style={{ fontSize: '18px', fontWeight: 600, color: '#1F2937' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#1F2937' }}>
               T4 - Employment Income
             </h2>
             <p style={{ fontSize: '14px', color: '#6B7280' }}>
@@ -675,7 +665,7 @@ export function IncomePage() {
       <Card style={{ marginBottom: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <div>
-            <h2 id="section-t4fhsa" style={{ fontSize: '18px', fontWeight: 600, color: '#1F2937' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#1F2937' }}>
               T4A - Pension & Other Income
             </h2>
             <p style={{ fontSize: '14px', color: '#6B7280' }}>
@@ -753,7 +743,7 @@ export function IncomePage() {
       <Card style={{ marginBottom: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <div>
-            <h2 id="section-t5" style={{ fontSize: '18px', fontWeight: 600, color: '#1F2937' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#1F2937' }}>
               T5 - Investment Income
             </h2>
             <p style={{ fontSize: '14px', color: '#6B7280' }}>
@@ -791,7 +781,7 @@ export function IncomePage() {
 
       {/* Other Income */}
       <Card style={{ marginBottom: '32px' }}>
-        <h2 id="section-capital-gains" style={{ fontSize: '18px', fontWeight: 600, marginBottom: '20px', color: '#1F2937' }}>
+        <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '20px', color: '#1F2937' }}>
           Other Income
         </h2>
 

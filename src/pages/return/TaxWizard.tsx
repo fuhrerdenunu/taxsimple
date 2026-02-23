@@ -289,7 +289,9 @@ function LeftSidebar({ taxYear, currentPath }: { taxYear: number; currentPath: s
     ? formOptions.filter(f => f.name.toLowerCase().includes(searchQuery.toLowerCase()))
     : formOptions;
 
-  const isActive = (section: NavItem) => section.path === currentPath;
+  const isActive = (section: NavSection) => {
+    return section.path === currentPath;
+  };
 
   return (
     <aside style={{
