@@ -20,6 +20,7 @@ import WorkspacePage from './pages/return/WorkspacePage';
 import { ReviewPage } from './pages/return/ReviewPage';
 import { CompletePage } from './pages/return/CompletePage';
 import { DocumentsPage } from './pages/DocumentsPage';
+import { ProfilePage } from './pages/return/ProfilePage';
 
 // Global styles
 const globalStyles = `
@@ -91,6 +92,7 @@ export default function App() {
               <Route path="/documents" element={<DocumentsPage />} />
 
               {/* Canonical year/person routes */}
+              <Route path="/return/:taxYear/person/:personId/profile" element={<ProfilePage />} />
               <Route path="/return/:taxYear/person/:personId/workspace" element={<WorkspacePage />} />
               <Route path="/return/:taxYear/person/:personId/review" element={<ReviewPage />} />
               <Route path="/return/:taxYear/person/:personId/submit" element={<CompletePage />} />
