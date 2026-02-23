@@ -7,7 +7,21 @@ import { ReviewPage } from './ReviewPage';
 import { CompletePage } from './CompletePage';
 import { useTaxReturn } from '../../context/TaxReturnContext';
 import { calculateTax, formatCurrency, CURRENT_TAX_YEAR } from '../../domain/tax';
-import { navSections, getNavPath, type NavItem } from './navigationConfig';
+
+// Wealthsimple-style navigation sections
+interface NavSection {
+  id: string;
+  label: string;
+  path: string;
+}
+
+const navSections: NavSection[] = [
+  { id: 'profile', label: 'About you', path: 'profile' },
+  { id: 'income', label: 'Income & forms', path: 'income' },
+  { id: 'deductions', label: 'Deductions & credits', path: 'deductions' },
+  { id: 'review', label: 'Review & optimize', path: 'review' },
+  { id: 'submit', label: 'Submit', path: 'complete' }
+];
 
 export function TaxWizard() {
   const { taxYear } = useParams();
@@ -392,58 +406,52 @@ function LeftSidebar({ taxYear, currentPath }: { taxYear: number; currentPath: s
 
       {/* Navigation */}
       <nav>
-        {navSections.map((section) => {
-          const children = section.children?.filter((child) => child.id !== 'partner' || showPartnerLink) || [];
+        {navSections.map((section) => (
+          <Link
+            key={section.id}
+            to={`/return/${taxYear}/${section.path}`}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              width: '100%',
+              padding: '10px 16px',
+              backgroundColor: isActive(section) ? '#F3F4F6' : 'transparent',
+              border: 'none',
+              borderLeft: isActive(section) ? '3px solid #1F2937' : '3px solid transparent',
+              cursor: 'pointer',
+              fontSize: '14px',
+              color: '#4B5563',
+              textAlign: 'left',
+              textDecoration: 'none',
+              transition: 'all 0.15s'
+            }}
+          >
+            <span style={{ fontWeight: isActive(section) ? 500 : 400 }}>{section.label}</span>
+          </Link>
+        ))}
 
-          return (
-            <div key={section.id}>
-              <Link
-                to={getNavPath(taxYear, section)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  width: '100%',
-                  padding: '10px 16px',
-                  backgroundColor: isActive(section) ? '#F3F4F6' : 'transparent',
-                  border: 'none',
-                  borderLeft: isActive(section) ? '3px solid #1F2937' : '3px solid transparent',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  color: '#4B5563',
-                  textAlign: 'left',
-                  textDecoration: 'none',
-                  transition: 'all 0.15s'
-                }}
-              >
-                <span style={{ fontWeight: isActive(section) ? 500 : 400 }}>{section.label}</span>
-              </Link>
-
-              {children.map((child) => (
-                <Link
-                  key={child.id}
-                  to={getNavPath(taxYear, child)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    width: '100%',
-                    padding: '8px 16px 8px 28px',
-                    backgroundColor: child.path === currentPath ? '#F9FAFB' : 'transparent',
-                    border: 'none',
-                    borderLeft: child.path === currentPath ? '3px solid #9CA3AF' : '3px solid transparent',
-                    cursor: 'pointer',
-                    fontSize: '13px',
-                    color: '#6B7280',
-                    textAlign: 'left',
-                    textDecoration: 'none'
-                  }}
-                >
-                  {child.label}
-                </Link>
-              ))}
-            </div>
-          );
-        })}
+        {showPartnerLink && (
+          <Link
+            to={`/return/${taxYear}/profile?section=partner`}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              width: '100%',
+              padding: '10px 16px',
+              backgroundColor: currentPath === 'profile' ? '#F9FAFB' : 'transparent',
+              border: 'none',
+              borderLeft: '3px solid #D1D5DB',
+              cursor: 'pointer',
+              fontSize: '13px',
+              color: '#6B7280',
+              textAlign: 'left',
+              textDecoration: 'none'
+            }}
+          >
+            Your Partner
+          </Link>
+        )}
       </nav>
     </aside>
   );
