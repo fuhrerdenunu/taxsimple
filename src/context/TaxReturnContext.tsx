@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useReducer, useRef } from 'react';
 import CryptoJS from 'crypto-js';
 import { CURRENT_TAX_YEAR, type ProvinceCode } from '../domain/tax';
+import { useAuth } from './AuthContext';
 
 // Types
 export interface T4Slip {
@@ -328,8 +329,8 @@ type Action =
   | { type: 'NEW_RETURN'; payload: number }
   | { type: 'LOAD_STATE'; payload: unknown };
 
-const STORAGE_KEY = 'taxsimple_returns';
-const LEGACY_BACKUP_KEY = 'taxsimple_returns_legacy_backup';
+const STORAGE_KEY_BASE = 'taxsimple_returns';
+const LEGACY_BACKUP_KEY_BASE = 'taxsimple_returns_legacy_backup';
 const getEncryptionKey = () => process.env.REACT_APP_ENCRYPTION_KEY || 'dev_only_not_for_production';
 
 const encrypt = (data: string): string => CryptoJS.AES.encrypt(data, getEncryptionKey()).toString();
@@ -934,14 +935,20 @@ interface TaxReturnContextType {
 const TaxReturnContext = createContext<TaxReturnContextType | undefined>(undefined);
 
 export function TaxReturnProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
   const [state, dispatch] = useReducer(reducer, initialState);
   const lastPersistedPayloadRef = useRef<string>('');
+  const userStorageSuffix = (user?.email || 'anonymous').toLowerCase();
+  const storageKey = `${STORAGE_KEY_BASE}_${userStorageSuffix}`;
+  const legacyBackupKey = `${LEGACY_BACKUP_KEY_BASE}_${userStorageSuffix}`;
 
   useEffect(() => {
+    lastPersistedPayloadRef.current = '';
+    dispatch({ type: 'SET_HYDRATED', payload: false });
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
+      const stored = localStorage.getItem(storageKey);
       if (!stored) {
-        dispatch({ type: 'SET_HYDRATED', payload: true });
+        dispatch({ type: 'MIGRATE_LEGACY_STATE', payload: null });
         return;
       }
 
@@ -950,7 +957,7 @@ export function TaxReturnProvider({ children }: { children: React.ReactNode }) {
         const loadedState = JSON.parse(decrypted);
         dispatch({ type: 'LOAD_STATE', payload: loadedState });
       } catch {
-        const backup = localStorage.getItem(LEGACY_BACKUP_KEY);
+        const backup = localStorage.getItem(legacyBackupKey);
         if (backup) {
           try {
             const recovered = JSON.parse(decrypt(backup));
@@ -977,7 +984,7 @@ export function TaxReturnProvider({ children }: { children: React.ReactNode }) {
     } catch {
       dispatch({ type: 'SET_HYDRATED', payload: true });
     }
-  }, []);
+  }, [legacyBackupKey, storageKey]);
 
   const persistPayload = useMemo(() => JSON.stringify(stripRuntimeState(state)), [state]);
 
@@ -997,7 +1004,7 @@ export function TaxReturnProvider({ children }: { children: React.ReactNode }) {
     const timeoutId = setTimeout(() => {
       try {
         const encrypted = encrypt(persistPayload);
-        localStorage.setItem(STORAGE_KEY, encrypted);
+        localStorage.setItem(storageKey, encrypted);
         lastPersistedPayloadRef.current = persistPayload;
         dispatch({ type: 'SET_SAVE_STATE', payload: { status: 'saved', lastSavedAt: new Date().toISOString() } });
       } catch {
@@ -1006,7 +1013,7 @@ export function TaxReturnProvider({ children }: { children: React.ReactNode }) {
     }, 450);
 
     return () => clearTimeout(timeoutId);
-  }, [persistPayload, state.hydrated, state.saveState.lastSavedAt, state.saveState.status]);
+  }, [persistPayload, state.hydrated, state.saveState.lastSavedAt, state.saveState.status, storageKey]);
 
   useEffect(() => {
     if (!state.profile.spouse?.filingTogether) {
@@ -1014,11 +1021,11 @@ export function TaxReturnProvider({ children }: { children: React.ReactNode }) {
     }
     try {
       const encrypted = encrypt(JSON.stringify({ profile: state.profile, currentReturn: state.currentReturn }));
-      localStorage.setItem(LEGACY_BACKUP_KEY, encrypted);
+      localStorage.setItem(legacyBackupKey, encrypted);
     } catch {
       // Best effort.
     }
-  }, [state.profile, state.currentReturn]);
+  }, [legacyBackupKey, state.profile, state.currentReturn]);
 
   const getTaxInput = (year?: number, personId?: PersonId) => {
     const targetYear = year ?? state.activeYear;
