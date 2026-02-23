@@ -292,6 +292,9 @@ function LeftSidebar({ taxYear, currentPath }: { taxYear: number; currentPath: s
 
   const isActive = (section: { path: string }) => section.path === currentPath;
   const isActive = (section: NavItem) => section.path === currentPath;
+  const isActive = (section: NavSection) => {
+    return section.path === currentPath;
+  };
 
   return (
     <aside style={{
